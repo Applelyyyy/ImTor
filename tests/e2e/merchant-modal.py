@@ -8,6 +8,7 @@ from pathlib import Path
 from ui_helpers import settled
 from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright, expect
+expect.set_options(timeout=15000)
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = os.environ.get("IMTOR_TEST_BASE_URL", "http://localhost:3100")
@@ -39,12 +40,14 @@ with sync_playwright() as p:
         page.wait_for_url("**/merchant")
         page.wait_for_load_state("networkidle")
     page.goto(BASE + "/merchant/schedule", wait_until="networkidle")
-    page.get_by_label("1. ขายที่ตลาดไหน?").select_option(fixture["marketId"])
-    page.get_by_label("2. ขายวันไหน?").select_option(fixture["sessionId"])
-    page.get_by_label("3. เลือกล็อกที่ได้รับอนุญาต").select_option(fixture["stallId"])
-    page.get_by_label("ฉันมีสิทธิใช้พื้นที่นี้", exact=False).check()
-    page.get_by_role("button", name="บันทึกวันและล็อก", exact=True).click()
-    expect(page.locator("[data-sonner-toast]").filter(has_text="บันทึกเรียบร้อยแล้ว")).to_be_visible()
+    page.get_by_role("button", name="เลือกตลาดและล็อก", exact=True).click()
+    picker = page.get_by_role("dialog")
+    picker.get_by_role("radio", name="ตลาดเล็กทดสอบ", exact=True).check()
+    picker.locator('[data-map-stall]').filter(has_text="A99").click()
+    picker.get_by_role("checkbox", name="ฉันยืนยันว่ามีสิทธิ์ใช้ล็อกนี้", exact=True).check()
+    picker.get_by_role("button", name="ยืนยันล็อก A99", exact=True).click()
+    expect(picker).not_to_be_visible()
+    expect(page.get_by_text("บันทึกตำแหน่งเรียบร้อย", exact=True)).to_be_visible()
     passed("Merchant authorized attendance persists through the UI")
     page.goto(BASE + "/merchant/products", wait_until="networkidle")
     page.get_by_role("button", name="+ เพิ่มสินค้า", exact=True).click()

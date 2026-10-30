@@ -4,7 +4,7 @@
 .viewport { width: 100%; max-height: min(54dvh, 36rem); overflow: auto; border: 1px solid #ccd9ce; border-radius: .85rem; overscroll-behavior: contain; touch-action: none; cursor: grab; background: #f8f7e9; }
 .viewport:active { cursor: grabbing; }
 .viewport:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
-.stage { position: relative; box-sizing: content-box; padding: 3rem; }
+.stage { transform-origin: 0 0; position: relative; box-sizing: content-box; padding: 3rem; }
 .surface { position: relative; width: 100%; isolation: isolate; background-color: #f8f7e9; background-image: linear-gradient(#dbe7d570 1px, transparent 1px), linear-gradient(90deg, #dbe7d570 1px, transparent 1px); background-size: 8% 10%; }
 .layoutImage { pointer-events: none; object-fit: fill; z-index: -1; }
 .schematic { position: absolute; top: .55rem; left: .55rem; right: .55rem; margin: 0; color: #344f36; font-size: .875rem; pointer-events: none; }
@@ -32,3 +32,7 @@
 .chooserList button { min-height: 44px; height: auto; white-space: normal; text-align: left; }
 .marker[data-map-cluster] { border-style: double; border-width: 3px; }
 .marker[data-map-cluster] span { white-space: normal; }
+
+.marker { transition: background-color var(--motion-hover) ease, border-color var(--motion-hover) ease, outline-color var(--motion-hover) ease; }
+@keyframes selected { from { outline-color: transparent; } to { outline-color: #f4ba66; } }
+@media(prefers-reduced-motion: no-preference) { .marker[data-selected="true"] { animation: selected var(--motion-feedback) var(--ease-enter); } }

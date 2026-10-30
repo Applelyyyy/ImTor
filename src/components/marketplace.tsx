@@ -24,6 +24,7 @@ import { money } from "@/lib/utils";
 import { publicFeatures } from "@/lib/queries";
 import type { MarketView, ProductView } from "@/lib/contracts";
 import { FormSubmit } from "@/components/pending-controls";
+import { ChangeFeedback } from "@/components/change-feedback";
 export const statusLabel: Record<string, string> = {
   OPEN: "เปิดตามเวลาตลาด",
   SCHEDULED: "รอเปิดตามตาราง",
@@ -193,7 +194,7 @@ export function MarketPanel({ markets }: { markets: MarketView[] }) {
             <div className="market-name">
               <h3>{m.name}</h3>
               <Badge variant={s.status === "OPEN" ? "default" : "secondary"}>
-                {statusLabel[s.status] || s.status}
+                <ChangeFeedback value={s.status}>{statusLabel[s.status] || s.status}</ChangeFeedback>
               </Badge>
             </div>
             <p>

@@ -1,8 +1,11 @@
 "use client";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, memo, useContext, useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import styles from "./app-dialog.module.css";
+
+// Freeze the last open body during Radix's exit, even when a caller clears its selection.
+const RetainedDialogBody = memo(function RetainedDialogBody({children}: {open:boolean;children:React.ReactNode}) { return children; }, (_previous,next)=>!next.open);
 
 const AppDialogCloseContext = createContext<(() => void) | null>(null);
 export function useAppDialogClose() { return useContext(AppDialogCloseContext); }
@@ -41,6 +44,7 @@ export function AppDialog({open,onOpenChange,title,description,dirty=false,busy=
         else if(event.target instanceof Element && event.target.closest("[data-app-dialog-escape-layer]")) event.preventDefault();
       }}
       onInteractOutside={event=>{if(busy||discard)event.preventDefault();}}>
+      <RetainedDialogBody open={open}>
       <DialogHeader className={styles.header}>
         <DialogTitle>{discard ? "ละทิ้งการเปลี่ยนแปลง?" : title}</DialogTitle>
         <DialogDescription className={discard ? undefined : "sr-only"}>
@@ -52,6 +56,7 @@ export function AppDialog({open,onOpenChange,title,description,dirty=false,busy=
         <Button ref={resume} variant="outline" onClick={()=>{setDiscard(false);requestAnimationFrame(()=>formFocus.current?.focus());}}>แก้ไขต่อ</Button>
         <Button variant="destructive" onClick={()=>{setDiscard(false);onOpenChange(false);}}>ละทิ้งการเปลี่ยนแปลง</Button>
       </div>}
+      </RetainedDialogBody>
     </DialogContent>
   </Dialog>;
 }

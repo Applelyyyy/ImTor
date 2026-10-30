@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+import { ChangeFeedback } from "@/components/change-feedback";
+
 type Operation = "add" | "remove" | "sold-out";
 type Inventory = { available: number | null; reserved: number; completed: number };
 type Attempt = { operation: Operation; quantity?: number; idempotencyKey: string };
@@ -70,7 +72,7 @@ export function InventoryControls({ productId, available, compact = false, onSta
   }
   if (available === null) return <p className="help-text">แสดงสินค้าอย่างเดียว · ไม่ติดตามจำนวน</p>;
   return <section className={`inventory-control${compact ? " inventory-control-compact" : ""}`} aria-busy={busy || refreshing || loading} aria-label="จำนวนสินค้า">
-    <p className="inventory-available">คงเหลือ <strong>{current}</strong> ชิ้น</p>
+    <p className="inventory-available">คงเหลือ <ChangeFeedback value={current}><strong>{current}</strong></ChangeFeedback> ชิ้น</p>
     {loading && <p className="help-text" role="status">กำลังตรวจสอบจำนวน…</p>}
     {confirmed && <p className="help-text">จองไว้ {confirmed.value.reserved} ชิ้น · รับสินค้าแล้ว {confirmed.value.completed} ชิ้น</p>}
     <div className="inventory-actions">

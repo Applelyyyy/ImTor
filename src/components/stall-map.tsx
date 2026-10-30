@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { MarketMapCanvas } from "@/components/market-map-canvas";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { SheetDragHandle } from "@/components/sheet-drag-handle";
 import { cn, money } from "@/lib/utils";
 import { searchStalls } from "@/lib/stall-search";
 import styles from "./stall-map.module.css";
@@ -147,6 +148,7 @@ function StallMapView({ market: m, selected }: { market: MarketView; selected?: 
     </div>
     {mobile && <Sheet open={open && !!active} onOpenChange={(value) => { if (!value) close(); }}>
       <SheetContent id={panelId} side="bottom" className={styles.sheet} onCloseAutoFocus={(event) => { event.preventDefault(); (lastTrigger.current ?? markers.current.get(id))?.focus({ preventScroll: true }); }}>
+        <SheetDragHandle onDismiss={close} />
         <SheetHeader className="p-0 pr-8"><SheetTitle>โซน {active?.zone} · ล็อก {active?.code}</SheetTitle><SheetDescription>รายละเอียดร้านและสินค้าในรอบตลาดที่เลือก</SheetDescription></SheetHeader>
         {active && <>
           <div className={styles.toolbar} aria-label="เปลี่ยนล็อกที่เลือก">

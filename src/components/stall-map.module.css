@@ -41,3 +41,7 @@
   .panel .links { flex: 0 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .panel .links > a { min-width: 0; min-height: 44px; height: auto; padding: .4rem .5rem; white-space: normal; text-align: center; font-size: .875rem; }
 }
+
+@keyframes detail-in { from { opacity: .4; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+@media(prefers-reduced-motion: no-preference) { .details { animation: detail-in var(--motion-feedback) var(--ease-enter); } }
+@media(max-width:767px) and (prefers-reduced-motion: no-preference) { .details { animation-name: imtor-feedback; } }

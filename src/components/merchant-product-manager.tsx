@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { ChangeFeedback } from "@/components/change-feedback";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { AppDialog, useAppDialogClose } from "@/components/app-dialog";
@@ -64,7 +65,7 @@ export function MerchantProductManager({ storeId, categories, products }: { stor
     <div className={styles.image}><Image src={p.imageUrl} alt="" fill sizes="68px" /></div>
     <div className={styles.name}>{p.name}</div>
     <div className={styles.price}>{money(p.currentPrice)}{p.currentPrice !== p.price && <del>{money(p.price)}</del>}</div>
-    <div className={styles.stock}>{p.stock === null ? "ไม่ติดตามจำนวน" : p.stock === 0 ? "สินค้าหมด" : `คงเหลือ ${p.stock.toLocaleString("th-TH")} ชิ้น`}<small><Badge variant={p.published && !p.archived ? "default" : "secondary"}>{p.archived ? "เก็บเข้าคลัง" : p.published ? "เผยแพร่" : "พักขาย"}</Badge></small></div>
+    <div className={styles.stock}><ChangeFeedback value={`${p.stock}:${p.published}:${p.archived}`}>{p.stock === null ? "ไม่ติดตามจำนวน" : p.stock === 0 ? "สินค้าหมด" : `คงเหลือ ${p.stock.toLocaleString("th-TH")} ชิ้น`}<small><Badge variant={p.published && !p.archived ? "default" : "secondary"}>{p.archived ? "เก็บเข้าคลัง" : p.published ? "เผยแพร่" : "พักขาย"}</Badge></small></ChangeFeedback></div>
     <div className={styles.actions}>
       <Button variant="outline" size="sm" disabled={!hydrated || !!busyId || refreshing} onClick={(event) => {opener.current=event.currentTarget;open({action:"edit",product:p});}}>แก้ไข</Button>
       <DropdownMenu open={menuId === p.id} onOpenChange={(next) => setMenuId(next ? p.id : null)}><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"
