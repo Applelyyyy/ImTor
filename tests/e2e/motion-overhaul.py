@@ -31,7 +31,7 @@ with sync_playwright()as p:
    starts=pg.evaluate('window.__motionStarts');assert sum(x['name']=='imtor-enter' for x in starts)<=11
    before=shell(pg);trigger=pg.locator('header').get_by_role('link',name='ค้นหาสินค้า ร้าน หรือตลาด',exact=True);trigger.click();rows=sample(pg,'[data-app-dialog]');same(pg,before);assert rows and rows[-1]['opacity']==1
    assert all(abs(r['x']+r['w']/2-width/2)<1.5 for r in rows) if width>=640 else all(r['x']>=-1 and r['w']<=width+1 for r in rows)
-   d=pg.get_by_role('dialog');assert d.locator('input').evaluate('e=>document.activeElement===e');d.locator('input').fill('ขนม');d.get_by_role('button',name='ค้นหา',exact=True).click();expect(d.locator('p[role=status]')).not_to_contain_text('กำลังค้นหา');settle(pg);pg.keyboard.press('Escape');expect(d).not_to_be_visible();expect(trigger).to_be_focused();same(pg,before)
+   d=pg.get_by_role('dialog');assert d.locator('input').evaluate('e=>document.activeElement===e');d.locator('input').fill('ขนม');d.locator('input').press('Enter');expect(d.locator('p[role=status]')).not_to_contain_text('กำลังค้นหา');settle(pg);pg.keyboard.press('Escape');expect(d).not_to_be_visible();expect(trigger).to_be_focused();same(pg,before)
    pg.screenshot(path=str(OUT/f'home-{width}.png'));ok('Home, centered filters, overlays/search/focus and responsive shell',width=width,heroStarts=len(starts))
    metrics.append({'width':width,'route':'/','cls':pg.evaluate('window.__shifts.reduce((a,b)=>a+b,0)'),'longTasks':pg.evaluate('window.__long')})
    product=pg.locator('.product-photo').first.get_attribute('href');go(pg,product);expect(pg.locator('h1')).to_be_visible();store=pg.locator('a[href^="/store/"]').first.get_attribute('href');go(pg,store);expect(pg.locator('h1')).to_be_visible()

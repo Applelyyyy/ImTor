@@ -96,7 +96,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid #f6a95a;
+  outline: 2px solid var(--primary);
   outline-offset: 4px;
 }
 h1,
