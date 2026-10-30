@@ -1717,3 +1717,134 @@ select {
     padding-top: 12px;
   }
 }
+
+
+/* ImTor motion: fast, purposeful feedback with no additional JS dependency.
+   The existing reduced-motion rules disable these effects when requested. */
+:root {
+  --motion-quick: 140ms;
+  --motion-standard: 200ms;
+  --motion-entrance: 280ms;
+  --motion-ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --motion-ease-move: cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes imtor-enter {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 10px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  /* Entrance motion is intentionally limited to primary page landmarks. */
+  .home-hero .hero-copy,
+  .page-heading {
+    animation: imtor-enter var(--motion-entrance) var(--motion-ease-out) both;
+  }
+
+  .home-hero .market-panel {
+    animation: imtor-enter 320ms var(--motion-ease-out) 65ms both;
+  }
+
+  .discovery .section-heading,
+  .vendor-banner {
+    animation: imtor-enter var(--motion-entrance) var(--motion-ease-out) both;
+  }
+
+  /* Only animate properties that can change without reflow. */
+  [data-slot="button"] {
+    transition:
+      background-color var(--motion-quick) ease,
+      border-color var(--motion-quick) ease,
+      color var(--motion-quick) ease,
+      opacity var(--motion-quick) ease,
+      transform var(--motion-quick) var(--motion-ease-out);
+  }
+
+  [data-slot="button"]:not(:disabled):active {
+    transform: scale(0.985);
+  }
+
+  .category {
+    transition:
+      background-color var(--motion-quick) ease,
+      border-color var(--motion-quick) ease,
+      color var(--motion-quick) ease,
+      transform var(--motion-quick) var(--motion-ease-out);
+  }
+
+  .product-card {
+    transition:
+      transform var(--motion-standard) var(--motion-ease-out),
+      box-shadow var(--motion-standard) var(--motion-ease-out);
+  }
+
+  .product-photo img {
+    transition: transform 250ms var(--motion-ease-out);
+  }
+
+  .search-form {
+    transition:
+      border-color var(--motion-quick) ease,
+      box-shadow var(--motion-standard) ease;
+  }
+
+  .search-form:focus-within {
+    border-color: #8aba9b;
+    box-shadow: 0 0 0 3px #267a4a16;
+  }
+
+  .stall-marker {
+    transition:
+      transform var(--motion-standard) var(--motion-ease-move),
+      box-shadow var(--motion-quick) ease;
+  }
+
+  /* Retain translate(-50%, -50%) so markers stay aligned to their coordinates. */
+  .stall-marker.selected {
+    transform: translate(-50%, -50%) scale(1.045);
+  }
+
+  .stall-list-item {
+    transition:
+      transform var(--motion-standard) var(--motion-ease-out),
+      background-color var(--motion-quick) ease,
+      border-color var(--motion-quick) ease;
+  }
+
+  .stall-list-item[aria-pressed="true"] {
+    background: var(--secondary);
+    border-color: #96bda2;
+  }
+
+  .location-panel[aria-live],
+  .form-success,
+  .advanced-fields[open] > :not(summary) {
+    animation: imtor-enter var(--motion-standard) var(--motion-ease-out) both;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .product-card:hover {
+      transform: translate3d(0, -3px, 0);
+      box-shadow: 0 12px 24px #23352b0e;
+    }
+
+    .product-card:hover .product-photo img {
+      transform: scale(1.035);
+    }
+
+    .category:hover {
+      transform: translate3d(0, -1px, 0);
+    }
+
+    .stall-list-item:hover {
+      transform: translate3d(0, -2px, 0);
+      border-color: #b3cbb7;
+    }
+  }
+}
