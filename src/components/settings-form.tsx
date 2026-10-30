@@ -54,7 +54,7 @@ export function SettingsForm() {
               ["reservationsEnabled", "เปิดรับการจอง"],
               ["foodRescueEnabled", "เปิดอาหารช่วยลดเหลือ"],
               ["requireStoreApproval", "ร้านใหม่ต้องอนุมัติ"],
-              ["demoMode", "ป้ายโหมดสาธิต"],
+              ["demoMode", "โหมดนำเสนอ"],
               ["defaultDiscount", "ส่วนลดทั่วไป (ไม่ใช้กับสินค้าปกติ)"],
             ].map(([key, label]) => (
               <option key={key} value={key}>

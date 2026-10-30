@@ -1,9 +1,9 @@
 import { requireAdmin } from "@/components/auth-guard";
 import { db } from "@/lib/db";
 import { PageHeading, date, time } from "@/components/marketplace";
-import { ApiForm, ApiButton } from "@/components/forms";
+import { ApiForm } from "@/components/forms";
 import { DEMO_SCENARIOS } from "@/services/demo";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AdminDeleteButton } from "@/components/admin-delete-button";
 const scenarios: Record<string, string> = {
   campus: "ชุมชนแคมปัสครบชุด",
   "small-market": "ตลาดเล็ก",
@@ -28,18 +28,10 @@ export default async function DemoGenerator() {
   return (
     <>
       <PageHeading
-        title="เตรียมชุมชนจำลอง"
-        description="ข้อมูลทุกชุดติดป้ายตัวอย่าง และลบเฉพาะชุดได้โดยไม่แตะข้อมูลจริง"
+        title="ชุดข้อมูล"
+        description=""
       />
       <div className="stack">
-        <Alert>
-          <AlertTitle>ข้อมูลสำหรับสาธิตเท่านั้น</AlertTitle>
-          <AlertDescription>
-            ร้าน ลูกค้า ตลาด และตำแหน่งที่สร้างขึ้นเป็นข้อมูลสมมติ
-            ไม่ได้เป็นผู้ค้าหรือสถานที่จริง
-            ระบบไม่เปิดรับจองสินค้าตัวอย่างจากลูกค้าจริง
-          </AlertDescription>
-        </Alert>
         <div className="form-panel">
           <h2>สร้างชุดข้อมูลใหม่</h2>
           {process.env.ENABLE_DEMO_GENERATOR === "true" ? (
@@ -48,7 +40,7 @@ export default async function DemoGenerator() {
               fields={[
                 {
                   name: "scenario",
-                  label: "สถานการณ์สาธิต",
+                  label: "สถานการณ์",
                   type: "select",
                   required: true,
                   value: "campus",
@@ -75,7 +67,7 @@ export default async function DemoGenerator() {
                 },
                 {
                   name: "customers",
-                  label: "จำนวนลูกค้าสมมติ",
+                  label: "จำนวนลูกค้า",
                   type: "number",
                   value: 30,
                   min: 1,
@@ -90,18 +82,18 @@ export default async function DemoGenerator() {
                   max: 500,
                 },
               ]}
-              submit="สร้างชุดข้อมูลสาธิต"
+              submit="สร้างชุดชุดข้อมูล"
             />
           ) : (
             <p className="help-text">
               ยังไม่เปิดตัวสร้างข้อมูล ตั้งค่า ENABLE_DEMO_GENERATOR=true
-              ในสภาพแวดล้อมสาธิตก่อนใช้งาน
+              ในสภาพแวดล้อมที่เปิดใช้งานก่อนใช้งาน
             </p>
           )}
         </div>
         <div className="content-panel">
           <h2>ชุดข้อมูลที่สร้างไว้</h2>
-          {!batches.length && <p>ยังไม่มีชุดข้อมูลสาธิต</p>}
+          {!batches.length && <p>ยังไม่มีชุดชุดข้อมูล</p>}
           {batches.map((b) => (
             <div className="session-row" key={b.id}>
               <div>
@@ -111,14 +103,7 @@ export default async function DemoGenerator() {
                   {time(b.createdAt.toISOString())} · {b.id}
                 </small>
               </div>
-              <ApiButton
-                endpoint={`/api/admin/demo/${b.id}`}
-                method="DELETE"
-                variant="destructive"
-                confirmMessage="ลบข้อมูลตัวอย่างเฉพาะชุดนี้ทั้งหมด? ไม่กระทบข้อมูลจริง"
-              >
-                ล้างชุดนี้
-              </ApiButton>
+              <AdminDeleteButton endpoint={`/api/admin/demo/${b.id}`} name={`ชุดข้อมูล ${b.label}`} related />
             </div>
           ))}
         </div>

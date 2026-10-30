@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { invariant } from "@/lib/errors";
 import { assertActive, assertOwner, type Actor } from "@/lib/permissions";
 import { transaction } from "./transactions";
+import { parsePickupQr } from "@/lib/pickup-qr";
 import { InventoryService } from "./inventory";
 import { PricingService } from "./pricing";
 import { z } from "zod";
@@ -39,7 +40,11 @@ export class ReservationService {
         "สินค้านี้ไม่เปิดให้จอง",
         409,
       );
-      invariant(!p.demoBatchId, "สินค้าสาธิตไม่รับการจองจริง", 409);
+      if (p.demoBatchId) {
+        const policy = await tx.systemSetting.findUnique({ where: { key: `demo:${p.demoBatchId}` } });
+        const configured = z.object({ config: z.object({ visitorReservations: z.literal(true) }) }).safeParse(policy?.value);
+        invariant(process.env.DEMO_MODE === "true" && configured.success, "สินค้านี้ยังไม่เปิดรับการจอง", 409);
+      }
       const settings = await tx.systemSetting.findMany({
         where: { key: { in: ["reservationsEnabled", "foodRescueEnabled"] } },
       });
@@ -95,6 +100,7 @@ export class ReservationService {
       const reservation = await tx.reservation.create({
         data: {
           userId: actor.id,
+          demoBatchId: p.demoBatchId,
           productId,
           quantity,
           unitPrice: price.current,
@@ -128,6 +134,8 @@ export class ReservationService {
     id: string,
     status: string,
     pickupCode?: string,
+    allowCompletedReplay = false,
+    expectedStoreId?: string,
   ) {
     assertActive(actor);
     invariant(
@@ -141,7 +149,6 @@ export class ReservationService {
         where: { id },
         include: { product: { include: { store: true } } },
       });
-      invariant(r.status === "RESERVED", "การจองนี้เปลี่ยนสถานะแล้ว", 409);
       if (status === "CANCELLED")
         invariant(
           r.userId === actor.id ||
@@ -151,21 +158,18 @@ export class ReservationService {
           403,
         );
       else assertOwner(actor, r.product.store);
+      if (expectedStoreId !== undefined)
+        invariant(r.product.storeId === expectedStoreId, "QR นี้เป็นของร้านอื่น", 403);
+      if (status === "COMPLETED") {
+        const actual = Buffer.from(r.pickupCode), provided = Buffer.from(pickupCode ?? "");
+        invariant(actual.length === provided.length && timingSafeEqual(actual, provided), "รหัสรับสินค้าไม่ถูกต้อง", 400);
+        // A retry must still prove merchant ownership and the same pickup secret.
+        if (allowCompletedReplay && r.status === "COMPLETED") return { ...r, pickupReplayed: true as const };
+      }
+      invariant(r.status === "RESERVED", "การจองนี้เปลี่ยนสถานะแล้ว", 409);
       if (status === "COMPLETED") {
         invariant(r.expiresAt > new Date(), "การจองหมดอายุแล้ว", 409);
-        invariant(
-          !!r.product.pickupStart && r.product.pickupStart <= new Date(),
-          "ยังไม่ถึงเวลารับสินค้า",
-          409,
-        );
-        const actual = Buffer.from(r.pickupCode),
-          provided = Buffer.from(pickupCode ?? "");
-        invariant(
-          actual.length === provided.length &&
-            timingSafeEqual(actual, provided),
-          "รหัสรับสินค้าไม่ถูกต้อง",
-          400,
-        );
+        invariant(!!r.product.pickupStart && r.product.pickupStart <= new Date(), "ยังไม่ถึงเวลารับสินค้า", 409);
       }
       if (status === "NO_SHOW")
         invariant(r.expiresAt <= new Date(), "ยังไม่หมดเวลารับสินค้า", 409);
@@ -199,6 +203,13 @@ export class ReservationService {
       });
       return result;
     });
+  }
+  static async redeemPickupQr(actor: Actor, payload: string, storeId?: string) {
+    const proof = parsePickupQr(payload);
+    const row = await this.transition(actor, proof.id, "COMPLETED", proof.code, true, storeId);
+    const product = await db.product.findUnique({ where: { id: row.productId }, select: { name: true, store: { select: { name: true } } } });
+    return { id: row.id, status: row.status, quantity: row.quantity, completedAt: row.completedAt, alreadyCompleted: "pickupReplayed" in row && row.pickupReplayed === true,
+      productName: product?.name, storeName: product?.store.name };
   }
   static async expire() {
     const rows = await db.reservation.findMany({

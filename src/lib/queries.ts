@@ -296,9 +296,9 @@ export async function markets(
               !a.store.suspended &&
               !["CANCELLED", "NOT_ATTENDING"].includes(a.status),
           ).length,
-          confirmedCount: s.attendances.filter(
+          confirmedCount: s.startsAt <= now && s.endsAt > now ? s.attendances.filter(
             (a) => !a.store.hidden && !a.store.suspended && a.status === "OPEN",
-          ).length,
+          ).length : 0,
           marketId: m.id,
         }) satisfies SessionView,
     ),

@@ -26,77 +26,26 @@ afterAll(async () => {
   }
   await db.$disconnect();
 });
-it("never cascades a market's configured children, then deletes an explicitly empty named market", async () => {
-  const m = await market();
-  const zone = await AdminService.zone(actor, m.id, { name: "A" });
-  await expect(
-    ResourceLifecycleService.remove(actor, "market", m.id, {
-      confirmName: m.name,
-    }),
-  ).rejects.toThrow("โซน");
-  expect(
-    await db.marketZone.findUnique({ where: { id: zone.id } }),
-  ).not.toBeNull();
-  await expect(
-    ResourceLifecycleService.remove(actor, "zone", zone.id, {
-      confirmName: "wrong",
-    }),
-  ).rejects.toThrow();
-  await ResourceLifecycleService.remove(actor, "zone", zone.id, {
-    confirmName: "A",
-  });
-  await ResourceLifecycleService.remove(actor, "market", m.id, {
-    confirmName: m.name,
-  });
-  expect(await db.marketVenue.findUnique({ where: { id: m.id } })).toBeNull();
-  expect(
-    await db.auditLog.count({
-      where: { actorId: actor.id, action: "MARKET_DELETED", target: m.id },
-    }),
-  ).toBe(1);
+it("deletes a nonempty market with its zones after explicit confirmation", async () => {
+  const m = await market();const zone = await AdminService.zone(actor,m.id,{name:"A"});
+  await expect(ResourceLifecycleService.remove(actor,"zone",zone.id,{confirmName:"wrong"})).rejects.toThrow();
+  await ResourceLifecycleService.remove(actor,"market",m.id,{confirmDelete:true});
+  expect(await db.marketVenue.findUnique({where:{id:m.id}})).toBeNull();
+  expect(await db.marketZone.findUnique({where:{id:zone.id}})).toBeNull();
+  expect(await db.auditLog.count({where:{actorId:actor.id,action:"MARKET_DELETED",target:m.id}})).toBe(1);
 });
-it("blocks stalls referenced by preferred attendance templates and denies ordinary users", async () => {
-  const m = await market();
-  const zone = await AdminService.zone(actor, m.id, { name: "B" });
-  const stall = await AdminService.stall(actor, m.id, null, {
-    zoneId: zone.id,
-    code: "B01",
-    x: 0.2,
-    y: 0.3,
-  });
-  const store = await db.store.create({
-    data: { name: tag, slug: `${tag}-store`, ownerId: actor.id },
-  });
+it("deletes a referenced stall, clears the preferred code and still denies ordinary users", async () => {
+  const m=await market(),zone=await AdminService.zone(actor,m.id,{name:"B"});
+  const stall=await AdminService.stall(actor,m.id,null,{zoneId:zone.id,code:"B01",x:.2,y:.3});
+  const store=await db.store.create({data:{name:tag,slug:tag+"-store",ownerId:actor.id}});
   try {
-    await db.attendanceTemplate.create({
-      data: {
-        marketId: m.id,
-        storeId: store.id,
-        weekday: 1,
-        preferredCode: stall.code,
-      },
-    });
-    const preview = await ResourceLifecycleService.preview(
-      actor,
-      "stall",
-      stall.id,
-    );
-    expect(preview.canDelete).toBe(false);
-    await expect(
-      ResourceLifecycleService.remove(actor, "stall", stall.id, {
-        confirmName: stall.code,
-      }),
-    ).rejects.toThrow();
-    await expect(
-      ResourceLifecycleService.preview(
-        { ...actor, role: "USER" },
-        "stall",
-        stall.id,
-      ),
-    ).rejects.toThrow("ผู้ดูแล");
-  } finally {
-    await db.store.delete({ where: { id: store.id } });
-  }
+    const template=await db.attendanceTemplate.create({data:{marketId:m.id,storeId:store.id,weekday:1,preferredCode:stall.code}});
+    expect((await ResourceLifecycleService.preview(actor,"stall",stall.id)).canDelete).toBe(true);
+    await expect(ResourceLifecycleService.remove({...actor,role:"USER"},"stall",stall.id,{confirmDelete:true})).rejects.toThrow("ผู้ดูแล");
+    await ResourceLifecycleService.remove(actor,"stall",stall.id,{confirmDelete:true});
+    expect(await db.marketStall.findUnique({where:{id:stall.id}})).toBeNull();
+    expect((await db.attendanceTemplate.findUniqueOrThrow({where:{id:template.id}})).preferredCode).toBeNull();
+  } finally {await db.store.delete({where:{id:store.id}});}
 });
 it("saves positions atomically, rejects cross-market IDs and stale coordinates", async () => {
   const m = await market(),
@@ -245,11 +194,8 @@ it("keeps preferred-code templates attached when their stall code is renamed", a
         })
       ).preferredCode,
     ).toBe("R02");
-    await expect(
-      ResourceLifecycleService.remove(actor, "stall", stall.id, {
-        confirmName: "R02",
-      }),
-    ).rejects.toThrow();
+    await ResourceLifecycleService.remove(actor,"stall",stall.id,{confirmName:"R02"});
+    expect((await db.attendanceTemplate.findUniqueOrThrow({where:{id:template.id}})).preferredCode).toBeNull();
   } finally {
     await db.store.delete({ where: { id: store.id } });
   }

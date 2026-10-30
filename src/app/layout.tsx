@@ -7,7 +7,6 @@ import {
   ShoppingBag,
   UserRound,
   Store,
-  ArrowUpRight,
 } from "lucide-react";
 import { publicBranding } from "@/lib/queries";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -53,13 +52,7 @@ export default async function RootLayout({
         <header className="site-header">
           <div className="shell header-inner">
             <Link className="brand" href="/" aria-label={`${siteName} หน้าแรก`}>
-              <span className="brand-mark">
-                <Leaf strokeWidth={2.3} />
-              </span>
-              <span>
-                <span className="brand-title font-display">{siteName}</span>
-                <span className="brand-en">ImTor</span>
-              </span>
+              <span className="brand-title">{siteName}</span>
             </Link>
             <nav className="desktop-nav" aria-label="เมนูหลัก">
               <Link href="/">หน้าแรก</Link>
@@ -85,6 +78,8 @@ export default async function RootLayout({
             </div>
           </div>
         </header>
+        <Toaster position="top-right" closeButton visibleToasts={2} toastOptions={{duration:4000}} offset={{top:"calc(var(--site-header-height) + env(safe-area-inset-top, 0px) + 12px)",right:16}} mobileOffset={{top:"calc(var(--site-header-height) + env(safe-area-inset-top, 0px) + 12px)",left:16,right:16}} />
+        <main id="main" tabIndex={0} aria-label="เนื้อหาหลัก">
         {branding.announcement && (
           <div className="shell site-announcement">
             <Alert>
@@ -92,19 +87,20 @@ export default async function RootLayout({
             </Alert>
           </div>
         )}
-        <Toaster position="top-right" closeButton visibleToasts={2} toastOptions={{duration:4000}} offset={{top:80,right:16}} mobileOffset={{top:72,left:16,right:16}} />
-        <main id="main">{children}</main>
-        <footer className="site-footer shell">
-          <div>
-            <Link className="brand" href="/">
-              <Leaf />
-              <span className="brand-title font-display">{siteName}</span>
+          {children}
+        </main>
+        <footer className="site-footer">
+          <div className="shell footer-inner">
+            <Link className="footer-brand" href="/" aria-label={`${siteName} หน้าแรก`}>
+              <span>{siteName}</span>
             </Link>
-            <p>อิ่มด้วยกัน ไม่เหลือทิ้ง</p>
+            <nav className="footer-links" aria-label="เมนูส่วนท้าย">
+              <Link href="/explore">สินค้าและร้านค้า</Link>
+              <Link href="/markets">ตลาด</Link>
+              <Link href="/become-vendor">เปิดร้าน</Link>
+            </nav>
+            <small className="footer-copyright">© {new Date().getFullYear()} {siteName}</small>
           </div>
-          <Link href="/become-vendor">
-            เปิดร้าน <ArrowUpRight size={16} />
-          </Link>
         </footer>
         <nav className="mobile-nav" aria-label="เมนูบนมือถือ">
           <Link href="/">

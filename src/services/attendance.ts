@@ -8,7 +8,8 @@ export class AttendanceService {
   static async save(
     actor: Actor,
     input: z.infer<typeof attendanceSchema>,
-    verified = false,
+    verified?: boolean,
+    reusePermission = false,
   ) {
     const data = attendanceSchema.parse(input);
     return transaction(async (tx) => {
@@ -31,10 +32,10 @@ export class AttendanceService {
         include: { market: true },
       });
       invariant(
-        session.status !== "CANCELLED" &&
+        ["SCHEDULED", "OPEN"].includes(session.status) &&
           session.endsAt > new Date() &&
           session.market.active,
-        "รอบตลาดนี้ปิดหรือยกเลิกแล้ว",
+        "รอบตลาดนี้ไม่เปิดให้เลือกล็อก",
         409,
       );
       const stall = await tx.marketStall.findUniqueOrThrow({
@@ -47,7 +48,7 @@ export class AttendanceService {
           stall.active,
         "ล็อกไม่อยู่ในตลาดนี้หรือปิดใช้งาน",
       );
-      if (verified) assertAdmin(actor);
+      if (verified !== undefined) assertAdmin(actor);
       if (data.status === "OPEN")
         invariant(
           session.startsAt <= new Date() && session.endsAt > new Date(),
@@ -56,6 +57,17 @@ export class AttendanceService {
         );
       // Lock a stall across all sessions; the exclusion constraint is the final cross-process guard.
       await tx.$queryRaw`SELECT id FROM "MarketStall" WHERE id=${stall.id} FOR UPDATE`;
+      const previous = await tx.storeAttendance.findUnique({
+        where: { storeId_sessionId: { storeId: store.id, sessionId: session.id } },
+        include: { assignment: { include: { stall: { include: { zone: true } } } } },
+      });
+      // PATCH status edits may reuse the existing permission, but must not turn
+      // into an unacknowledged move when another request changes the assignment.
+      if (reusePermission)
+        invariant(
+          previous?.authorized && previous.assignment?.stallId === stall.id,
+          "กรุณายืนยันว่ามีสิทธิ์ใช้ล็อกนี้",
+        );
       const attendance = await tx.storeAttendance.upsert({
         where: {
           storeId_sessionId: { storeId: store.id, sessionId: session.id },
@@ -75,14 +87,20 @@ export class AttendanceService {
           sellingUntil: data.sellingUntil,
         },
       });
-      const released = await tx.stallAssignment.findUnique({
-        where: { attendanceId: attendance.id },
-        include: { stall: { include: { zone: true } } },
-      });
+      const released = previous?.assignment ?? null;
       await tx.stallAssignment.deleteMany({
         where: { attendanceId: attendance.id },
       });
-      if (!["CANCELLED", "NOT_ATTENDING"].includes(data.status)) {
+      const attending = !["CANCELLED", "NOT_ATTENDING"].includes(data.status);
+      // An unchanged merchant save must not revoke an administrator's existing
+      // verification. Moving stalls or changing the interval requires re-review.
+      // Admin requests retain their explicit ability to verify or unverify.
+      const assignmentVerified = attending && (verified ?? (
+        !!released?.verified && released.stallId === stall.id &&
+        released.startsAt.getTime() === session.startsAt.getTime() &&
+        released.endsAt.getTime() === session.endsAt.getTime()
+      ));
+      if (attending) {
         const conflict = await tx.stallAssignment.findFirst({
           where: {
             stallId: stall.id,
@@ -90,14 +108,14 @@ export class AttendanceService {
             endsAt: { gt: session.startsAt },
           },
         });
-        invariant(!conflict, "ล็อกนี้มีร้านจองในช่วงเวลานี้แล้ว", 409);
+        invariant(!conflict, "ล็อกนี้ถูกเลือกไปแล้ว กรุณาเลือกล็อกอื่น", 409);
         await tx.stallAssignment.create({
           data: {
             attendanceId: attendance.id,
             stallId: stall.id,
             startsAt: session.startsAt,
             endsAt: session.endsAt,
-            verified,
+            verified: assignmentVerified,
           },
         });
       }
@@ -109,7 +127,7 @@ export class AttendanceService {
           changes: {
             stallId: stall.id,
             status: data.status,
-            verified,
+            verified: assignmentVerified,
             releasedAssignment: released
               ? {
                   id: released.id,
@@ -137,9 +155,19 @@ export class AttendanceService {
   ) {
     const row = await db.storeAttendance.findUniqueOrThrow({
       where: { id },
-      include: { assignment: true },
+      include: { assignment: true, store: { select: { ownerId: true } } },
     });
     if (admin) assertAdmin(actor);
+    assertOwner(actor, row.store);
+    const reusePermission = !admin && input.authorized !== true;
+    if (!admin) {
+      invariant(input.authorized === undefined || input.authorized === true, "กรุณายืนยันว่ามีสิทธิ์ใช้ล็อกนี้");
+      invariant(
+        !reusePermission || (row.authorized &&
+          (typeof input.stallId !== "string" || input.stallId === row.assignment?.stallId)),
+        "กรุณายืนยันว่ามีสิทธิ์ใช้ล็อกนี้",
+      );
+    }
     return this.save(
       actor,
       {
@@ -154,7 +182,8 @@ export class AttendanceService {
           typeof attendanceSchema
         >["status"],
       },
-      admin && input.verified === true,
+      admin && typeof input.verified === "boolean" ? input.verified : undefined,
+      reusePermission,
     );
   }
 }

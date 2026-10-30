@@ -6,7 +6,8 @@ import {
   type CSSProperties,
   type FormEvent,
 } from "react";
-import Image from "next/image";
+import { MarketMapSurface } from "@/components/market-map-canvas";
+import { normalizedPoint, zoneLabels } from "@/lib/market-map";
 import {
   Plus,
   Save,
@@ -90,8 +91,7 @@ export function LayoutEditor({
       "zone" | "batch" | "image" | "remove-image" | "reset" | null
     >(null),
     [editingZone, setEditingZone] = useState<Zone | null>(null);
-  const [deletion, setDeletion] = useState<Deletion | null>(null),
-    [confirmation, setConfirmation] = useState("");
+  const [deletion, setDeletion] = useState<Deletion | null>(null);
   const [imageValue, setImageValue] = useState(image),
     [savedImage, setSavedImage] = useState(image),
     [neutral, setNeutral] = useState(false);
@@ -233,8 +233,7 @@ export function LayoutEditor({
         "GET",
       );
       setDeletion(preview);
-      setConfirmation("");
-    });
+      });
   }
   const zoomedWidth = `${zoom * 100}%`;
   return (
@@ -332,12 +331,13 @@ export function LayoutEditor({
               style={
                 {
                   width: zoomedWidth,
-                  height: `${560 * zoom}px`,
                   "--editor-zoom": zoom,
                 } as CSSProperties
               }
             >
-              <div
+              <MarketMapSurface
+                name="ที่ผู้ดูแลอัปโหลด"
+                layoutImage={neutral ? null : imageValue}
                 ref={canvas}
                 className={styles.canvas}
                 role="group"
@@ -354,36 +354,9 @@ export function LayoutEditor({
                   );
                 }}
               >
-                {!neutral && imageValue && (
-                  <Image
-                    src={imageValue}
-                    alt="ผังตลาดที่ผู้ดูแลอัปโหลด"
-                    fill
-                    sizes="(max-width: 1050px) 100vw, 70vw"
-                  />
-                )}
-                {zones.map((zone) => {
-                  const group = stalls.filter(
-                    (stall) => stall.zoneId === zone.id,
-                  );
-                  if (!group.length) return null;
-                  const x =
-                      group.reduce((sum, stall) => sum + stall.x, 0) /
-                      group.length,
-                    y = Math.max(
-                      0.03,
-                      Math.min(...group.map((stall) => stall.y)) - 0.065,
-                    );
-                  return (
-                    <span
-                      key={zone.id}
-                      className={styles.zone}
-                      style={{ left: `${x * 100}%`, top: `${y * 100}%` }}
-                    >
-                      โซน {zone.name}
-                    </span>
-                  );
-                })}
+                {zoneLabels(stalls.map((stall) => ({ ...stall, zone: zones.find((zone) => zone.id === stall.zoneId)?.name ?? "" }))).map((zone) => (
+                  <span key={zone.name} className={styles.zone} style={{ left: `${zone.x * 100}%`, top: `${zone.y * 100}%` }}>โซน {zone.name}</span>
+                ))}
                 {stalls.map((stall) => (
                   <button
                     key={stall.id}
@@ -394,8 +367,8 @@ export function LayoutEditor({
                     aria-pressed={selected === stall.id}
                     aria-label={`ล็อก ${stall.code}${stall.active ? "" : " ปิดใช้งาน"} เลือกหรือใช้ปุ่มลูกศรเพื่อย้าย`}
                     style={{
-                      left: `${stall.x * 100}%`,
-                      top: `${stall.y * 100}%`,
+                      left: `${normalizedPoint(stall).x * 100}%`,
+                      top: `${normalizedPoint(stall).y * 100}%`,
                     }}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -461,7 +434,7 @@ export function LayoutEditor({
                 <span className={styles.entrance}>
                   ผังตำแหน่ง · ไม่ใช่พิกัดภูมิศาสตร์
                 </span>
-              </div>
+              </MarketMapSurface>
             </div>
           </div>
           <footer className={styles.footer}>
@@ -937,96 +910,18 @@ export function LayoutEditor({
             <DialogTitle>
               ลบ{deletion?.kind === "zone" ? "โซน" : "ล็อก"} {deletion?.name}
             </DialogTitle>
-            <DialogDescription>
-              {deletion?.canDelete
-                ? "ลบถาวรได้เฉพาะรายการที่ไม่มีข้อมูลอ้างอิง กรอกชื่อเพื่อยืนยัน"
-                : "รายการนี้มีข้อมูลเกี่ยวข้อง จึงลบถาวรไม่ได้"}
-            </DialogDescription>
+            <DialogDescription>ลบรายการนี้และข้อมูลที่เกี่ยวข้องถาวร?</DialogDescription>
           </DialogHeader>
-          {deletion?.blockers.map((item) => (
-            <p key={item}>{item}</p>
-          ))}
-          {deletion?.canDelete && (
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="delete-confirmation">
-                  กรอก {deletion.name}
-                </FieldLabel>
-                <Input
-                  id="delete-confirmation"
-                  value={confirmation}
-                  onChange={(event) => setConfirmation(event.target.value)}
-                />
-              </Field>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={busy || confirmation.trim() !== deletion.name.trim()}
-                onClick={() =>
-                  void run(async () => {
-                    await request(
-                      `/api/admin/${deletion.kind === "zone" ? "zones" : "stalls"}/${deletion.id}`,
-                      "DELETE",
-                      { confirmName: confirmation },
-                    );
-                    if (deletion.kind === "zone")
-                      setZones((rows) =>
-                        rows.filter((row) => row.id !== deletion.id),
-                      );
-                    else {
-                      setStalls((rows) =>
-                        rows.filter((row) => row.id !== deletion.id),
-                      );
-                      setBaseline((rows) =>
-                        rows.filter((row) => row.id !== deletion.id),
-                      );
-                      setHistory([]);
-                      setSelected("");
-                    }
-                    setDeletion(null);
-                    setMessage("ลบรายการที่ไม่มีข้อมูลเกี่ยวข้องแล้ว");
-                  })
-                }
-              >
-                ยืนยันลบถาวร
-              </Button>
-            </FieldGroup>
-          )}
-          {!deletion?.canDelete && deletion?.kind === "stall" && (
-            <Button
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={() =>
-                void run(async () => {
-                  const row: Stall = await request(
-                    `/api/admin/stalls/${deletion.id}`,
-                    "PATCH",
-                    { active: false },
-                  );
-                  setStalls((rows) =>
-                    rows.map((old) =>
-                      old.id === row.id ? { ...old, active: false } : old,
-                    ),
-                  );
-                  setBaseline((rows) =>
-                    rows.map((old) =>
-                      old.id === row.id ? { ...old, active: false } : old,
-                    ),
-                  );
-                  setDeletion(null);
-                  setMessage("ปิดใช้งานล็อกแล้ว ประวัติยังอยู่");
-                })
-              }
-            >
-              ปิดใช้งานแทน
-            </Button>
-          )}
-          {error && (
-            <p role="alert" className="form-error">
-              {error}
-            </p>
-          )}
+          <Button type="button" variant="destructive" disabled={busy || !deletion}
+            onClick={() => void run(async () => {
+              if (!deletion) return;
+              await request(`/api/admin/${deletion.kind === "zone" ? "zones" : "stalls"}/${deletion.id}`, "DELETE", {confirmDelete:true});
+              if (deletion.kind === "zone") setZones(rows => rows.filter(row => row.id !== deletion.id));
+              setStalls(rows => rows.filter(row => deletion.kind === "zone" ? row.zoneId !== deletion.id : row.id !== deletion.id));
+              setBaseline(rows => rows.filter(row => deletion.kind === "zone" ? row.zoneId !== deletion.id : row.id !== deletion.id));
+              setHistory([]);setSelected("");setDeletion(null);setMessage("ลบแล้ว");
+            })}>ยืนยันลบถาวร</Button>
+          {error && <p className="form-error" role="alert">{error}</p>}
         </DialogContent>
       </Dialog>
     </div>

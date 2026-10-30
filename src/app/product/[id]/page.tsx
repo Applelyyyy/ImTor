@@ -1,3 +1,4 @@
+import { pickupWindow } from "@/lib/pickup-window";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -5,7 +6,7 @@ import { product, publicFeatures } from "@/lib/queries";
 import { money } from "@/lib/utils";
 import { date, time } from "@/components/marketplace";
 import { ContextualForm } from "@/components/contextual-form";
-import { ApiForm } from "@/components/forms";
+import { ReportForm } from "@/components/report-form";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 export async function generateMetadata({
@@ -45,13 +46,12 @@ export default async function ProductPage({
           <div className="detail-meta">
             <Badge variant="secondary">{p.category.name}</Badge>
             {p.mode === "RESCUE" && <Badge>อิ่มคุ้ม ช่วยลดอาหารเหลือ</Badge>}
-            {p.demo && <Badge variant="outline">ข้อมูลตัวอย่าง</Badge>}
           </div>
           <Link className="help-text" href={`/store/${p.store.slug}`}>
             {p.store.name} {p.store.verified ? "✓" : ""}
           </Link>
           <h1>{p.name}</h1>
-          <p className="detail-description">{p.description}</p>
+          {p.description && <p className="detail-description">{p.description}</p>}
           <div className="price">
             {money(p.price.current)}
             {p.price.active && (
@@ -64,7 +64,7 @@ export default async function ProductPage({
           {p.price.upcoming && (
             <p className="help-text">
               ราคาถัดไป {money(p.price.upcoming.price)} เริ่ม{" "}
-              {time(p.price.upcoming.at)} น.
+              {date(p.price.upcoming.at)} {time(p.price.upcoming.at)} น.
               ราคาปัจจุบันยังไม่เปลี่ยนจนถึงเวลาเริ่ม
             </p>
           )}
@@ -81,8 +81,7 @@ export default async function ProductPage({
               <div>
                 <dt>เวลารับสินค้า</dt>
                 <dd>
-                  {date(p.pickupStart)} {time(p.pickupStart)}–
-                  {time(p.pickupEnd)}
+                  {pickupWindow(p.pickupStart, p.pickupEnd)}
                 </dd>
               </div>
             )}
@@ -101,16 +100,16 @@ export default async function ProductPage({
           </dl>
           {p.demo && !p.demoInteractive ? (
             <Alert>
-              <AlertTitle>สินค้าตัวอย่างสำหรับสาธิต</AlertTitle>
+              <AlertTitle>ยังไม่เปิดรับการจอง</AlertTitle>
               <AlertDescription>
-                รายการนี้ไม่ได้เปิดรับการจองสินค้าจริง
+                เลือกรายการอื่นจากร้านนี้
               </AlertDescription>
             </Alert>
           ) : !features.reservationsEnabled ? (
             <Alert>
               <AlertTitle>พักรับการจองออนไลน์ชั่วคราว</AlertTitle>
               <AlertDescription>
-                {p.demo ? "รายการสาธิตไม่มีการซื้อขายหรือรับสินค้าจริง" : "ยังแวะซื้อที่ร้านได้ กรุณาตรวจสอบเวลาเปิดก่อนเดินทาง"}
+                {"ตรวจสอบสินค้าและเวลาเปิดของร้าน"}
               </AlertDescription>
             </Alert>
           ) : p.reservable && p.stock !== null && p.stock > 0 ? (
@@ -118,16 +117,10 @@ export default async function ProductPage({
               <ContextualForm
                 title="ยืนยันการจอง"
                 description={`${p.name} · ${money(p.price.current)} ต่อชิ้น · ราคายืนยันเมื่อจอง`}
-                label={p.demo ? "ทดลองจองสินค้าสาธิต" : "จองไว้ แล้วไปรับที่ร้าน"}
+                label={"จองสินค้า"}
                 endpoint="/api/reservations"
                 body={{ productId: p.id }}
                 fields={[
-                  ...(p.demo ? [{
-                    name: "demoAcknowledged",
-                    label: "ฉันเข้าใจว่านี่คือการจองสาธิต ไม่มีการซื้อขายหรือรับสินค้าจริง",
-                    type: "checkbox" as const,
-                    required: true,
-                  }] : []),
                   {
                     name: "quantity",
                     label: "จำนวนที่ต้องการจอง",
@@ -138,20 +131,20 @@ export default async function ProductPage({
                     required: true,
                   },
                 ]}
-                submit={p.demo ? "ทดลองจองสินค้าสาธิต" : "จองไว้ แล้วไปรับที่ร้าน"}
+                submit={"จองสินค้า"}
                 redirect="/reservations"
               />
               <p className="help-text mt-4">
-                {p.demo ? "ข้อมูลสมมติเท่านั้น ไม่มีการซื้อขายหรือรับสินค้าจริง บัญชีของคุณยังเป็นบัญชีจริงตามเดิม" : "ยังไม่ต้องชำระออนไลน์ ยืนยันราคาและเวลารับกับร้านเมื่อจอง"}
+                แสดงรหัสจองเมื่อรับสินค้า
               </p>
             </div>
           ) : (
             <Alert>
               <AlertTitle>
-                {p.stock === 0 ? "สินค้าหมดแล้ว" : p.demo ? "สินค้าสาธิตนี้ยังไม่เปิดให้ทดลองจอง" : "แวะซื้อที่ร้านได้เลย"}
+                {p.stock === 0 ? "สินค้าหมดแล้ว" : "ซื้อได้ที่ร้าน"}
               </AlertTitle>
               <AlertDescription>
-                {p.demo ? "ไม่มีการซื้อขายหรือรับสินค้าจริง" : p.stock === 0
+                {p.stock === 0
                   ? "ลองดูสินค้าอื่นจากร้านนี้"
                   : "สินค้านี้ไม่เปิดรับจองออนไลน์ ตรวจสอบเวลาเปิดก่อนเดินทาง"}
               </AlertDescription>
@@ -176,19 +169,7 @@ export default async function ProductPage({
           แจ้งปัญหาเกี่ยวกับสินค้านี้
         </summary>
         <div className="form-panel mt-4">
-          <ApiForm
-            endpoint="/api/reports"
-            body={{ productId: p.id }}
-            fields={[
-              {
-                name: "reason",
-                label: "รายละเอียดปัญหา",
-                type: "textarea",
-                required: true,
-              },
-            ]}
-            submit="ส่งรายงาน"
-          />
+          <ReportForm productId={p.id} />
         </div>
       </details>
     </div>

@@ -1,0 +1,31 @@
+import{describe,it,expect,vi}from'vitest';
+import{renderToStaticMarkup}from'react-dom/server';
+import{readFileSync}from'node:fs';
+import{pickupWindow}from'@/lib/pickup-window';
+vi.mock('@/lib/queries',()=>({publicFeatures:async()=>({foodRescueEnabled:true,reservationsEnabled:true})}));
+import{CategoryFilters,PageHeading}from'@/components/marketplace';
+import{StallMap}from'@/components/stall-map';
+import{market}from'../fixtures/market-view';
+describe('concise presentation-ready UI',()=>{
+ it('keeps navigation and footer outside the independently scrollable content',()=>{
+  const css=readFileSync('src/app/globals.css','utf8'),layout=readFileSync('src/app/layout.tsx','utf8');
+  expect(css).toMatch(/\.site-header\s*\{\s*position: fixed;/);
+  expect(css).toContain('padding-top: calc(var(--site-header-height)');
+  expect(css).toMatch(/\.site-footer\s*\{\s*position: static;/);
+  expect(css).toContain('flex: 1 1 0;');
+  expect(css).toContain('min-height: 0;');
+  expect(css).toContain('height: 100dvh;');
+  expect(css).toContain('flex-wrap: wrap;');
+  expect(css).toContain('justify-content: center;');
+  expect(layout).not.toContain('brand-mark');
+  expect(layout).not.toContain('brand-en');
+  expect(layout).not.toContain('<Leaf aria-hidden');
+  expect(layout).toContain('aria-label="เมนูส่วนท้าย"');
+  expect(layout.indexOf('</main>')).toBeLessThan(layout.indexOf('<footer'));
+ });
+ it('prioritizes offers before ordinary categories while preserving filters',async()=>{const html=renderToStaticMarkup(await CategoryFilters({categories:[{id:'drinks',name:'เครื่องดื่ม'}],q:'กาแฟ',market:'small'}));expect(html.indexOf('ลดราคา')).toBeLessThan(html.indexOf('เครื่องดื่ม'));expect(html.indexOf('อิ่มคุ้ม')).toBeLessThan(html.indexOf('เครื่องดื่ม'));expect(html).toContain('market=small');expect(html).toContain('q=');});
+ it('renders a heading without verbose supporting copy',()=>{const html=renderToStaticMarkup(<PageHeading title="สินค้า" description="ไม่ต้องแสดงข้อความอธิบายซ้ำ"/>);expect(html).toContain('สินค้า');expect(html).not.toContain('ไม่ต้องแสดงข้อความ');});
+ it('keeps market interaction without the repeated explanatory paragraphs',()=>{const html=renderToStaticMarkup(<StallMap market={{...market,demo:true}} selected="A01"/>);expect(html).not.toContain('สาธิต');expect(html).not.toContain('ไม่ใช่เส้นทางเดิน');expect(html).not.toContain('ไม่ได้ยืนยันว่าพื้นที่จริงว่าง');expect(html).toContain('สถานะล็อก');expect(html).toContain('A01');});
+ it('shows both dates when pickup crosses a Bangkok calendar day',()=>{expect(pickupWindow('2026-10-31T01:00:00Z','2026-11-01T13:00:00Z')).toContain('31 ต.ค. 08:00–1 พ.ย. 20:00');expect(pickupWindow('2026-11-01T01:00:00Z','2026-11-01T13:00:00Z')).toContain('1 พ.ย. 08:00–20:00');});
+ it('uses actual permanent deletion controls and an explicit operational Thai font',()=>{const source=readFileSync('src/app/admin/products/page.tsx','utf8');expect(source).toContain('AdminDeleteButton');expect(source).not.toContain('เก็บเข้าคลัง');const css=readFileSync('src/app/globals.css','utf8');expect(css).toContain('.admin-workspace :is(h1,h2,h3,th,label)');expect(css).toContain('var(--font-kodchasan)');});
+});

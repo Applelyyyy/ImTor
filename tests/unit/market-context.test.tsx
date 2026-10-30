@@ -12,7 +12,7 @@ describe("contextual market surfaces", () => {
     expect(html).toContain('data-map-workspace=""');
     expect(html).toContain('aria-label="ปิดรายละเอียดล็อก"');
     expect(html).toContain("destination=13,100");
-    expect(html).toMatch(/class="stall-marker occupied selected"[^>]*aria-pressed="true"/);
+    expect(html).toMatch(/data-map-stall=""[^>]*data-status="occupied"[^>]*data-selected="true"[^>]*aria-pressed="true"/);
   });
   it("places one search results surface before the map and supports explicit Enter submission", () => {
     const html = renderToStaticMarkup(<StallMap market={market} />);

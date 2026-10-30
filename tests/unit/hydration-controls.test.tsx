@@ -4,7 +4,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh() {}, push() {} }) }));
 import { ApiForm, ApiButton } from "@/components/forms";
 import { AttendanceForm } from "@/components/attendance-form";
-import type { MarketView } from "@/lib/contracts";
 
 describe("pre-hydration interaction guards", () => {
   it("does not expose enabled client-only submit controls in server HTML", () => {
@@ -14,9 +13,11 @@ describe("pre-hydration interaction guards", () => {
     const button = renderToStaticMarkup(<ApiButton endpoint="/api/products/example">พักขาย</ApiButton>);
     expect(button).toMatch(/<button[^>]*disabled=""/);
   });
-  it("keeps dependent market/session selectors disabled until their change handlers exist", () => {
-    const market = { id:"market", name:"ตลาด", sessions:[], stalls:[] } as unknown as MarketView;
-    const html = renderToStaticMarkup(createElement(AttendanceForm, {storeId:"store",markets:[market]}));
-    expect(html.match(/<select[^>]*disabled=""/g)).toHaveLength(2);
+  it("does not expose dependent map controls before authorized data has loaded", () => {
+    const html = renderToStaticMarkup(createElement(AttendanceForm, {storeId:"store"}));
+    expect(html).toContain('role="status"');
+    expect(html).toContain("กำลังโหลดตลาดและแผนผัง");
+    expect(html).not.toContain("<form");
+    expect(html).not.toContain("<select");
   });
 });

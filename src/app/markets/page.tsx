@@ -106,7 +106,6 @@ export default async function Markets({
               .map((m) => (
                 <article className="market-card" key={m.id}>
                   <Badge variant="secondary">{m.type}</Badge>
-                  {m.demo && <Badge variant="outline">ข้อมูลตัวอย่าง</Badge>}
                   <h2 className="mt-3">{m.name}</h2>
                   <p>{m.description}</p>
                   <p>{m.address}</p>

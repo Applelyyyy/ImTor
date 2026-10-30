@@ -24,11 +24,6 @@ export default async function MapPage({
       </div>
       <PageHeading
         title={`หาร้านใน${m.name}`}
-        description={
-          m.demo
-            ? "แผนผังตัวอย่าง ไม่ใช่ตำแหน่งสถานที่จริง"
-            : "แตะที่ล็อก หรือค้นหาจากชื่อร้าน สินค้า โซน หรือรหัสล็อก"
-        }
       />
       <Form action="" className="inline-filter">
         <label htmlFor="map-session">ตำแหน่งร้านในรอบตลาด</label>

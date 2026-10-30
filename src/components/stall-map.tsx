@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { X } from "lucide-react";
 import type { MarketView, StallView } from "@/lib/contracts";
 import { Button } from "@/components/ui/button";
+import { MarketMapCanvas } from "@/components/market-map-canvas";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn, money } from "@/lib/utils";
@@ -30,8 +31,7 @@ function StallDetails({ stall, market }: { stall: StallView; market: MarketView 
   return <div className={cn("stall-details", styles.details)}>
     {vendor ? <>
       <div className={styles.summary}><p><strong>{vendor.name}</strong></p>
-      <p>{vendor.status === "OPEN" ? "ร้านยืนยันเปิด" : "ลงทะเบียนตามตาราง ยังไม่ยืนยันเปิด"} · {vendor.verified ? "ยืนยันตำแหน่งแล้ว" : "ตำแหน่งที่ร้านแจ้งเอง"}</p>
-      {vendor.demo && <p className="help-text">ร้านสาธิตและตำแหน่งสมมติ ไม่ใช่สถานที่จริง</p>}
+      <p>{vendor.status === "OPEN" ? "ร้านยืนยันเปิด" : "รอเปิด"} · {vendor.verified ? "ยืนยันตำแหน่งแล้ว" : "ยังไม่ยืนยันตำแหน่ง"}</p>
       </div>
       <div className={styles.products}>
         {vendor.products.map((product) => <Link key={product.id} href={`/product/${product.id}`} className={styles.product}>
@@ -47,30 +47,20 @@ function StallDetails({ stall, market }: { stall: StallView; market: MarketView 
     </div>
   </div>;
 }
-function panToMarker(container: HTMLDivElement | null, marker?: HTMLButtonElement) {
-  if (!marker || !container) return;
-  const markerRect = marker.getBoundingClientRect(), containerRect = container.getBoundingClientRect();
-  container.scrollTo({ left: container.scrollLeft + markerRect.left - containerRect.left - container.clientWidth / 2 + markerRect.width / 2,
-    top: container.scrollTop + markerRect.top - containerRect.top - container.clientHeight / 2 + markerRect.height / 2, behavior: "instant" });
-}
 function StallMapView({ market: m, selected }: { market: MarketView; selected?: string }) {
   const [id, setId] = useState(selected || "");
-  const [zoom, setZoom] = useState(1);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(!!selected);
   const panelId = useId();
   const searchId = useId();
-  const viewport = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLElement>(null);
   const markers = useRef(new Map<string, HTMLButtonElement>());
   const lastTrigger = useRef<HTMLElement | null>(null);
   const mobile = useSyncExternalStore(subscribeMobile, mobileSnapshot, serverSnapshot);
   const stalls = m.stalls.filter((stall) => stall.active);
+  const stallsById = new Map(stalls.map((stall) => [stall.id, stall]));
   const active = stalls.find((stall) => stall.code === id);
   const results = searchStalls(stalls, query);
-
-  // Only scroll the map's own viewport: never scroll the page to the marker.
-  useEffect(() => { panToMarker(viewport.current, markers.current.get(id)); }, [id, zoom]);
 
   // Fit the adjacent panel to its actual viewport position, not a guessed header height.
   // Re-measure after results/fonts/layout changes as well as viewport and sticky scroll changes.
@@ -81,16 +71,18 @@ function StallMapView({ market: m, selected }: { market: MarketView; selected?: 
     const fit = () => {
       frame = 0;
       if (!disposed) {
-        const navigation = document.querySelector("body > .mobile-nav")?.getBoundingClientRect();
-        const bottom = navigation?.height ? Math.min(window.innerHeight, navigation.top) : window.innerHeight;
+        const main = document.getElementById("main")?.getBoundingClientRect();
+        const bottom = main ? Math.min(window.innerHeight, main.bottom) : window.innerHeight;
         element.style.setProperty("--panel-available", `${Math.max(0, bottom - element.getBoundingClientRect().top - 16)}px`);
       }
     };
     const schedule = () => { if (!disposed && !frame) frame = requestAnimationFrame(fit); };
     const observer = new ResizeObserver(schedule);
     if (element.parentElement) observer.observe(element.parentElement);
+    const main = document.getElementById("main");
+    if (main) observer.observe(main);
     window.addEventListener("resize", schedule);
-    window.addEventListener("scroll", schedule, { passive: true });
+    main?.addEventListener("scroll", schedule, { passive: true });
     document.fonts.ready.then(schedule);
     fit();
     return () => {
@@ -98,7 +90,7 @@ function StallMapView({ market: m, selected }: { market: MarketView; selected?: 
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("resize", schedule);
-      window.removeEventListener("scroll", schedule);
+      main?.removeEventListener("scroll", schedule);
     };
   }, [mobile, id, open, query]);
 
@@ -107,7 +99,6 @@ function StallMapView({ market: m, selected }: { market: MarketView; selected?: 
     setId(code);
     setOpen(true);
     if (!mobile || !open) markers.current.get(code)?.focus({ preventScroll: true });
-    panToMarker(viewport.current, markers.current.get(code));
   }
   function close() {
     setOpen(false);
@@ -133,24 +124,19 @@ function StallMapView({ market: m, selected }: { market: MarketView; selected?: 
     </div>
     <div className={styles.workspace} data-map-workspace="">
       <div className={styles.mapColumn}>
-        <div className={styles.toolbar}>
-          <Button type="button" variant="outline" size="sm" disabled={zoom >= 2} onClick={() => setZoom((value) => Math.min(2, value + .25))}>ขยาย +</Button>
-          <Button type="button" variant="outline" size="sm" disabled={zoom <= 1} onClick={() => setZoom((value) => Math.max(1, value - .25))}>ย่อ −</Button>
-          <span className="help-text">สีเขียว = มีร้านลงทะเบียน</span>
-        </div>
-        <div ref={viewport} className={styles.viewport} tabIndex={0} role="region" aria-label="ผังล็อกที่เลื่อนได้">
-          <div className="map-stage" style={{ "--map-zoom": zoom } as CSSProperties}>
-            <div className="map-canvas">
-              {m.layoutImage && <Image src={m.layoutImage} alt={`ผังตลาด ${m.name}`} fill sizes="(min-width: 768px) 65vw, 100vw" />}
-              <div className="map-grid" />
-              {stalls.map((stall) => <button key={stall.id} type="button" ref={(node) => { if (node) markers.current.set(stall.code, node); else markers.current.delete(stall.code); }}
-                className={cn("stall-marker", stall.vendor && "occupied", id === stall.code && "selected")}
-                style={{ left: `${stall.x * 100}%`, top: `${stall.y * 100}%` }}
-                aria-label={`ล็อก ${stall.code} โซน ${stall.zone}${stall.vendor ? ` ${stall.vendor.name}` : " ยังไม่มีร้านลงทะเบียน"}`}
-                aria-pressed={id === stall.code} aria-controls={panelId} onClick={(event) => select(stall.code, event.currentTarget)}>{stall.code}</button>)}
-            </div>
-          </div>
-        </div>
+        <MarketMapCanvas mode="public" name={m.name} layoutImage={m.layoutImage} entrance={m.entrance}
+          stalls={stalls.map((stall) => ({ id: stall.id, code: stall.code, x: stall.x, y: stall.y, zone: stall.zone,
+            status: stall.vendor ? "occupied" : "available", detail: stall.vendor?.name ?? "ยังไม่มีร้านลงทะเบียน" }))}
+          selectedId={active?.id} controlsId={panelId}
+          markerRef={(stallId, node) => {
+            const code = stallsById.get(stallId)?.code;
+            if (!code) return;
+            if (node) markers.current.set(code, node); else markers.current.delete(code);
+          }}
+          onSelect={(stallId, trigger) => {
+            const code = stallsById.get(stallId)?.code;
+            if (code) select(code, trigger);
+          }} />
       </div>
       {!mobile && <section ref={panel} id={panelId} className={styles.panel} aria-live="polite" aria-labelledby={`${panelId}-title`} onKeyDown={(event) => { if (event.key === "Escape" && open) { event.stopPropagation(); close(); } }}>
         {active && open ? <>
@@ -171,6 +157,5 @@ function StallMapView({ market: m, selected }: { market: MarketView; selected?: 
         </>}
       </SheetContent>
     </Sheet>}
-    <p className="map-note mt-3">เลื่อนผังซ้าย–ขวาเพื่อดูล็อกทั้งหมด · ผังภายในตลาด ไม่ใช่เส้นทางเดินที่ตรวจสอบแล้ว ตำแหน่งที่ร้านแจ้งเองจะแสดงแยกจากตำแหน่งยืนยัน</p>
   </div>;
 }

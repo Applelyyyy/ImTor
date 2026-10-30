@@ -31,13 +31,10 @@ export default async function MarketDetail({
           <Link href={`/markets/${slug}/map`}>ดูแผนผัง</Link>
         </Button>
       </PageHeading>
-      {m.demo && (
-        <Badge variant="outline">ตลาดตัวอย่าง ไม่ใช่สถานที่จริง</Badge>
-      )}
       <div className="two-col mb-10">
         <div className="content-panel">
           <h2>ที่ตั้งตลาด</h2>
-          <p>{m.address}</p>
+          <p>{m.address || "ยังไม่ระบุที่ตั้ง"}</p>
           <p>{m.entrance}</p>
           {m.latitude !== null && m.longitude !== null && (
             <Button asChild variant="outline" className="mt-5">
@@ -50,9 +47,6 @@ export default async function MarketDetail({
               </a>
             </Button>
           )}
-          <p className="help-text mt-4">
-            เส้นทางภายในตลาด ดูตำแหน่งล็อกในแผนผังอิ่มต่อ
-          </p>
         </div>
         <div className="content-panel">
           <h2>นัดหมายครั้งถัดไป</h2>
@@ -77,7 +71,6 @@ export default async function MarketDetail({
       <div className="section-heading">
         <div>
           <h2>สินค้าที่ตลาดนี้</h2>
-          <p>เฉพาะสินค้าของร้านที่ลงทะเบียนขายในช่วงนี้</p>
         </div>
       </div>
       <ProductGrid items={items} />

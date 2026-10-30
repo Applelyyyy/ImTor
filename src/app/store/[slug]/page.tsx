@@ -21,7 +21,7 @@ export default async function StorePage({
   return (
     <div className="shell page">
       {s.imageUrl && <div className="relative mb-6 h-56 overflow-hidden rounded-2xl md:h-80">
-        <Image src={s.imageUrl} alt={`ภาพร้าน ${s.name}${s.demoBatchId ? " (ภาพสาธิต)" : ""}`} fill sizes="(max-width: 780px) 100vw, 1200px" className="object-cover" priority />
+        <Image src={s.imageUrl} alt={`ภาพร้าน ${s.name}`} fill sizes="(max-width: 780px) 100vw, 1200px" className="object-cover" priority />
       </div>}
       <PageHeading title={s.name} description={s.description}>
         <Badge
@@ -32,9 +32,6 @@ export default async function StorePage({
             : "ดูตารางขายของร้าน"}
         </Badge>
       </PageHeading>
-      {s.demoBatchId && (
-        <Badge variant="outline">ร้านค้าตัวอย่าง ไม่ใช่ร้านจริง</Badge>
-      )}
       <div className="two-col mb-10">
         <section className="content-panel">
           <h2>ร้านนี้อยู่ที่ไหน?</h2>

@@ -486,7 +486,7 @@ export function ApiButton({
     setError("");
     try {
       await request(endpoint, method, body);
-      toast.success("บันทึกแล้ว", { id: `action:${endpoint}:${method}:${JSON.stringify(body)}` });
+      toast.success(method === "DELETE" ? "ลบแล้ว" : "บันทึกแล้ว", { id: `action:${endpoint}:${method}:${JSON.stringify(body)}` });
       setOpen(false);
       startRefresh(() => router.refresh());
     } catch (e) {
@@ -554,7 +554,7 @@ export function ApiButton({
                   void run();
                 }}
               >
-                {busy ? "กำลังบันทึก…" : "ยืนยัน"}
+                {busy ? (method === "DELETE" ? "กำลังลบ…" : "กำลังบันทึก…") : "ยืนยัน"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

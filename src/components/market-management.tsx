@@ -52,7 +52,7 @@ export function MarketManagement({ markets }: { markets: ManagedMarket[] }) {
   }
   return <div className="stack">
     <div className="page-heading">
-      <div><h1>ตลาดและพื้นที่ขาย</h1><p>สร้างตลาด แล้วจัดวันเปิดและตำแหน่งร้านในพื้นที่เดียวกัน</p></div>
+      <div><h1>ตลาดและพื้นที่ขาย</h1></div>
       <Button type="button" onClick={(event) => begin(null, event.currentTarget)}><Plus data-icon="inline-start" />เพิ่มตลาด</Button>
     </div>
     {markets.length ? <AdminTableControls total={markets.length} headers={["ตลาด", "พื้นที่", "สถานะ", "จัดการ"]}
@@ -65,7 +65,7 @@ export function MarketManagement({ markets }: { markets: ManagedMarket[] }) {
           <Button type="button" variant="outline" size="sm" aria-label={`แก้ไขตลาด ${row.name}`} onClick={(event) => begin(row, event.currentTarget)}><Pencil data-icon="inline-start" />แก้ไข</Button>
           <Button asChild variant="outline" size="sm"><Link href={`/admin/markets/${row.id}/layout`}><Map data-icon="inline-start" />จัดผัง</Link></Button>
           <Button asChild variant="outline" size="sm"><Link href={`/admin/markets/${row.id}/schedule`}><CalendarDays data-icon="inline-start" />วันเปิด</Link></Button>
-          <ApiButton endpoint={`/api/admin/markets/${row.id}`} body={{ active: !row.active }} confirmMessage={row.active ? "ปิดแสดงผลตลาดนี้? รอบและประวัติเดิมยังคงอยู่" : undefined}>{row.active ? "ปิดแสดงผล" : "เปิดแสดงผล"}</ApiButton>
+          <ApiButton endpoint={`/api/admin/markets/${row.id}`} body={{ active: !row.active }} confirmMessage={row.active ? "ปิดแสดงผลตลาดนี้?" : undefined}>{row.active ? "ปิดแสดงผล" : "เปิดแสดงผล"}</ApiButton>
           <MarketDeleteControl id={row.id} name={row.name} />
         </div>,
       ])} /> : <div className="content-panel"><h2>เริ่มจากตลาดแรก</h2><p>เพิ่มชื่อตลาดและประเภท จากนั้นค่อยจัดผังและวันเปิด</p></div>}

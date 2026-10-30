@@ -7,7 +7,7 @@ it('does not insert action-success rows and deduplicates completed notifications
  const src=readFileSync('src/components/forms.tsx','utf8');
  expect(src).not.toContain('className="form-success"');
  expect(src).toContain('toast.success(success, { id:');
- expect(src).toContain('toast.success("บันทึกแล้ว", { id:');
+ expect(src).toContain('toast.success(method === "DELETE" ? "ลบแล้ว" : "บันทึกแล้ว", { id:');
  expect(renderToStaticMarkup(<ApiButton endpoint="/api/products/item">พักขาย</ApiButton>)).not.toContain('form-success');
 });
 it('shared forms support contextual save/cancel without forced navigation',()=>{
@@ -27,4 +27,11 @@ it("mobile surface clears Tailwind individual translate to stay inside viewport"
 it('contextual menus restore the persistent row trigger rather than a detached menu item',()=>{
  expect(readFileSync('src/components/app-dialog.tsx','utf8')).toContain('restoreFocusRef');
  const manager=readFileSync('src/components/merchant-product-manager.tsx','utf8');expect(manager).toContain('restoreFocusRef={opener}');expect(manager).toContain('onPointerDownCapture');
+});
+
+it('opens row action menus after pointer release without selecting an item on the trigger click',()=>{
+ const manager=readFileSync('src/components/merchant-product-manager.tsx','utf8');
+ expect(manager).toContain('open={menuId === p.id}');
+ expect(manager).toContain('onPointerDown={(event) => event.preventDefault()}');
+ expect(manager).toContain('onClick={() => setMenuId');
 });

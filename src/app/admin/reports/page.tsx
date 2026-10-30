@@ -1,3 +1,4 @@
+import { AdminDeleteButton } from "@/components/admin-delete-button";
 import { requireAdmin } from "@/components/auth-guard";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -63,6 +64,7 @@ export default async function Reports() {
               ตรวจสอบอีกครั้ง
             </ApiButton>
           )}
+          <AdminDeleteButton endpoint={`/api/admin/reports/${r.id}`} name={`รายงานนี้`} related />
         </div>,
       ])}
     />

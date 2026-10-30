@@ -98,3 +98,46 @@ export type RealisticDemoState = {
   assets: Record<string, { key: string; url: string; sha256: string; bytes: number }>;
   error?: string;
 };
+
+/** Authenticated, minimal merchant stall-selection data; no contact or owner details. */
+export type AttendanceSelectionView = {
+  storeId: string;
+  registrationEnabled: boolean;
+  markets: AttendanceSelectionMarket[];
+};
+export type AttendanceSelectionMarket = {
+  id: string;
+  slug: string;
+  name: string;
+  entrance: string;
+  timezone: string;
+  layoutImage: string | null;
+  demo: boolean;
+  zones: { id: string; name: string }[];
+  sessions: {
+    id: string;
+    date: string;
+    startsAt: string;
+    endsAt: string;
+    status: string;
+    currentAttendance: { id: string; status: string; stallId: string | null; verified: boolean } | null;
+  }[];
+  stalls: {
+    id: string;
+    code: string;
+    x: number;
+    y: number;
+    active: boolean;
+    directions: string;
+    zoneId: string;
+    zone: string;
+    assignments: {
+      sessionId: string;
+      startsAt: string;
+      endsAt: string;
+      own: boolean;
+      verified: boolean;
+      store: { name: string; slug: string } | null;
+    }[];
+  }[];
+};

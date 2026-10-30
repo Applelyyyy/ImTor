@@ -8,9 +8,9 @@ const AppDialogCloseContext = createContext<(() => void) | null>(null);
 export function useAppDialogClose() { return useContext(AppDialogCloseContext); }
 
 /** One responsive focus trap, including discard confirmation: drafts never need nested dialogs. */
-export function AppDialog({open,onOpenChange,title,description,dirty=false,busy=false,restoreFocusRef,children}: {
+export function AppDialog({open,onOpenChange,title,description,dirty=false,busy=false,restoreFocusRef,wide=false,children}: {
   open:boolean; onOpenChange:(open:boolean)=>void; title:string; description?:string;
-  dirty?:boolean; busy?:boolean; restoreFocusRef?:React.RefObject<HTMLElement | null>; children:React.ReactNode;
+  dirty?:boolean; busy?:boolean; wide?:boolean; restoreFocusRef?:React.RefObject<HTMLElement | null>; children:React.ReactNode;
 }) {
   const [discard, setDiscard] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
@@ -31,14 +31,19 @@ export function AppDialog({open,onOpenChange,title,description,dirty=false,busy=
     return ()=>window.removeEventListener("beforeunload",warn);
   },[open,dirty]);
   return <Dialog open={open} onOpenChange={next=>{if(next){setDiscard(false);onOpenChange(true);}else close();}}>
-    <DialogContent className={styles.surface} data-app-dialog showCloseButton={!busy}
+    <DialogContent className={styles.surface} data-app-dialog data-wide={wide || undefined} showCloseButton={!busy}
       onOpenAutoFocus={()=>{opener.current=document.activeElement as HTMLElement;}}
       onCloseAutoFocus={event=>{event.preventDefault(); const target=restoreFocusRef?.current ?? opener.current; if(target?.isConnected)target.focus();}}
-      onEscapeKeyDown={event=>{if(busy||discard){event.preventDefault();if(discard){setDiscard(false);requestAnimationFrame(()=>formFocus.current?.focus());}}}}
+      onEscapeKeyDown={event=>{
+        if(busy||discard){event.preventDefault();if(discard){setDiscard(false);requestAnimationFrame(()=>formFocus.current?.focus());}}
+        // Radix listens on document before React bubbles: let an inner chooser
+        // consume Escape without dismissing the enclosing dialog first.
+        else if(event.target instanceof Element && event.target.closest("[data-app-dialog-escape-layer]")) event.preventDefault();
+      }}
       onInteractOutside={event=>{if(busy||discard)event.preventDefault();}}>
       <DialogHeader className={styles.header}>
         <DialogTitle>{discard ? "ละทิ้งการเปลี่ยนแปลง?" : title}</DialogTitle>
-        <DialogDescription className={description||discard ? undefined : "sr-only"}>
+        <DialogDescription className={discard ? undefined : "sr-only"}>
           {discard ? "ข้อมูลที่ยังไม่ได้บันทึกจะไม่ถูกเก็บไว้" : description ?? "แก้ไขข้อมูลแล้วกดบันทึก หรือยกเลิกเพื่อกลับ"}
         </DialogDescription>
       </DialogHeader>

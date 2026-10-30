@@ -9,6 +9,7 @@ import {
 } from "@/components/marketplace";
 import { ApiButton } from "@/components/forms";
 import { ContextualForm } from "@/components/contextual-form";
+import { PickupScanner } from "@/components/pickup-scanner";
 import { money } from "@/lib/utils";
 export default async function MerchantReservations() {
   const s = await merchantStore();
@@ -19,7 +20,7 @@ export default async function MerchantReservations() {
       <PageHeading
         title="รายการจองของร้าน"
         description="ตรวจสอบรหัสรับสินค้าก่อนยืนยันส่งมอบ"
-      />
+      ><PickupScanner storeId={s.id} /></PageHeading>
       {!rows.length ? (
         <EmptyState
           title="ยังไม่มีรายการจอง"
@@ -30,7 +31,6 @@ export default async function MerchantReservations() {
           {rows.map((r) => (
             <div className="reservation-card" key={r.id}>
               <div>
-                {r.demoBatchId && <p className="help-text">การจองสาธิต · ไม่มีการซื้อขายหรือรับสินค้าจริง</p>}
                 <h2>
                   {r.product.name} × {r.quantity}
                 </h2>
@@ -62,7 +62,8 @@ export default async function MerchantReservations() {
                 )}
               </div>
               {r.status === "RESERVED" && (
-                <div>
+                <details>
+                  <summary className="help-text cursor-pointer">ใช้รหัสสำรอง</summary>
                   <ContextualForm title="ยืนยันส่งมอบสินค้า" label="ยืนยันส่งมอบสินค้า"
                     endpoint={`/api/reservations/${r.id}`}
                     method="PATCH"
@@ -76,7 +77,7 @@ export default async function MerchantReservations() {
                     ]}
                     submit="ยืนยันส่งมอบสินค้า"
                   />
-                </div>
+                </details>
               )}
             </div>
           ))}

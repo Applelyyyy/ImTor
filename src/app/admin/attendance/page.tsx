@@ -1,3 +1,4 @@
+import { AdminDeleteButton } from "@/components/admin-delete-button";
 import { requireAdmin } from "@/components/auth-guard";
 import { db } from "@/lib/db";
 import { AdminTable } from "@/components/admin";
@@ -50,6 +51,7 @@ export default async function Attendance() {
           >
             ยกเลิกเข้าร่วม
           </ApiButton>
+          <AdminDeleteButton endpoint={`/api/admin/attendance/${r.id}`} name={`การเข้าร่วมของ ${r.store.name}`} related />
         </div>,
       ])}
     />

@@ -75,7 +75,7 @@ with sync_playwright() as p:
                 rendered_font(page, '.price', 'Kodchasan')
                 expect(page.get_by_label('ค้นหาสินค้าและร้านค้า')).to_have_attribute('placeholder', 'ค้นหาร้านค้าหรือสินค้า')
             if name == 'map':
-                page.locator('.stall-marker').first.click()
+                page.locator('[data-map-stall]').first.click()
                 expect(page.locator('.location-panel')).to_be_visible()
                 page.get_by_label('ค้นหาร้านหรือล็อก').fill('A01')
                 expect(page.locator('.stall-list-item')).to_have_count(1)

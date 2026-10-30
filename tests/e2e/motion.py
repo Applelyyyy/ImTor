@@ -69,13 +69,13 @@ async def main():
                 await view.screenshot(path=str(OUT/f'{label}-{width}.png'), full_page=True)
                 if label == 'map':
                     assert await view.locator('.form-submit').evaluate('(el)=>getComputedStyle(el).color !== getComputedStyle(el).backgroundColor')
-                    stage = view.locator('.map-stage'); canvas=view.locator('.map-canvas')
+                    stage = view.locator('[data-map-stage]'); canvas=view.locator('[data-map-canvas]')
                     for zoom in (1,2):
                         if zoom == 2:
                             for _ in range(4): await view.get_by_role('button',name='ขยาย +').click()
                         await view.wait_for_timeout(210) # inspect final CSS geometry, not request timing
                         s,c = await stage.bounding_box(),await canvas.bounding_box()
-                        assert abs(s['height']-c['height']) < 2,(width,zoom,s['height'],c['height'])
+                        assert abs(s['height']-c['height']-96) < 2,(width,zoom,s['height'],c['height'])
                     await expect(view.get_by_role('button',name='ขยาย +')).to_be_disabled()
                 await ctx.close()
             await passed(f'{width}px viewport: eight pages, no horizontal overflow, map geometry at 1×/2×')
@@ -114,7 +114,7 @@ async def main():
         await passed('Slow market switch keeps committed label/data together and shows pending')
 
         await go(page,f'/markets/{FIXTURE["marketSlug"]}/map')
-        a99=page.locator('.stall-marker').filter(has_text='A99')
+        a99=page.locator('[data-map-stall]').filter(has_text='A99')
         await a99.focus();await page.keyboard.press('Enter')
         await expect(a99).to_have_attribute('aria-pressed','true')
         panel=page.locator('.location-panel'); await expect(panel).to_contain_text('A99')
@@ -124,12 +124,12 @@ async def main():
         await expect(panel).to_contain_text('A98')
         assert await panel.get_attribute('data-persisted')=='yes'
         assert await a98.evaluate('(el)=>el===document.activeElement')
-        await expect(page.locator('.stall-marker[aria-pressed=true]')).to_have_text('A98')
+        await expect(page.locator('[data-map-stall][aria-pressed=true]')).to_contain_text('A98')
         await expect(page.get_by_role('button',name='ย่อ −')).to_be_disabled()
         await page.locator('#map-session').select_option(FIXTURE['nextSessionId'])
         await page.get_by_role('button',name='ดูตำแหน่ง',exact=True).click()
         await page.wait_for_url('**session='+FIXTURE['nextSessionId'])
-        await expect(page.locator('.stall-marker[aria-pressed=true]')).to_have_count(0)
+        await expect(page.locator('[data-map-stall][aria-pressed=true]')).to_have_count(0)
         await expect(panel).to_be_hidden()
         await passed('Keyboard stall selection preserves focus/panel and session switch clears selection')
 
@@ -138,7 +138,7 @@ async def main():
         card=tp.locator('.product-card').first;await card.hover()
         assert await card.evaluate('(el)=>getComputedStyle(el).transform')=='none'
         await go(tp,f'/markets/{FIXTURE["marketSlug"]}/map')
-        await tp.locator('.stall-marker').filter(has_text='A99').tap()
+        await tp.locator('[data-map-stall]').filter(has_text='A99').tap()
         await expect(tp.locator('.location-panel')).to_contain_text('A99')
         await passed('Touch cards have no sticky hover transform; map tap remains functional')
         await touch.close()
@@ -153,7 +153,7 @@ async def main():
         assert await disabled.evaluate('(el)=>getComputedStyle(el).transform')=='none'
         await rp.mouse.up()
         await rp.get_by_role('button',name='ขยาย +').click()
-        assert await rp.locator('.map-canvas').evaluate('(el)=>getComputedStyle(el).transitionDuration')=='0s'
+        assert await rp.locator('[data-map-canvas]').evaluate('(el)=>getComputedStyle(el).transitionDuration')=='0s'
         await rp.locator('.stall-list-item').filter(has_text='A98').click()
         await expect(rp.locator('.location-panel')).to_contain_text('A98')
         assert await rp.locator('.stall-details').evaluate('(el)=>getComputedStyle(el).animationName')=='none'

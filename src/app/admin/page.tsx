@@ -24,22 +24,20 @@ export default async function AdminDashboard() {
         description="ดูแลร้าน ตลาด และทุกมื้อดี ๆ ของชุมชน"
       />
       {metrics.map(({ demo, values }) => <section key={String(demo)} className="mb-8">
-        <h2 className="mb-4 text-xl">{demo ? "ชุมชนจำลอง · ไม่ใช่กิจกรรมจริง" : "ข้อมูลจริง · ไม่รวมชุดสาธิต"}</h2>
+        <h2 className="mb-4 text-xl">{demo ? "ชุดข้อมูลนำเสนอ" : "ข้อมูลการใช้งาน"}</h2>
         <div className="stats">{values.map(([label, count]) => <div className="stat" key={label}><p>{label}</p><strong>{count}</strong></div>)}</div>
       </section>)}
       <div className="two-col">
         <section className="content-panel">
           <h2>ดูแลนัดอร่อย</h2>
-          <p>สร้างตลาด กำหนดวันเวลา และเพิ่มโซนกับตำแหน่งล็อก</p>
           <Button asChild className="mt-5">
             <Link href="/admin/markets">จัดการตลาด</Link>
           </Button>
         </section>
         <section className="content-panel">
-          <h2>พร้อมสำหรับการสาธิต</h2>
-          <p>สร้างข้อมูลจำลองแยกชุด ล้างเฉพาะชุดที่สร้าง ไม่กระทบข้อมูลจริง</p>
+          <h2>ชุดข้อมูล</h2>
           <Button asChild variant="outline" className="mt-5">
-            <Link href="/admin/demo-generator">จัดการข้อมูลสาธิต</Link>
+            <Link href="/admin/demo-generator">จัดการชุดข้อมูล</Link>
           </Button>
         </section>
       </div>

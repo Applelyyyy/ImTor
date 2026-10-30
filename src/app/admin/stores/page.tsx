@@ -1,3 +1,4 @@
+import { AdminDeleteButton } from "@/components/admin-delete-button";
 import { requireAdmin } from "@/components/auth-guard";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -17,10 +18,10 @@ export default async function Stores() {
       description="ตรวจสอบร้านและควบคุมการแสดงผล"
       headers={["ร้าน", "เจ้าของ", "สถานะ", "จัดการ"]}
       total={total}
-      searchValues={rows.map((r) => `${r.id} ${r.name} ${r.owner.email ?? ""} ${r.verified ? "ยืนยัน" : "ยังไม่ยืนยัน"} ${r.demoBatchId ? "สาธิต" : "จริง"}`)}
+      searchValues={rows.map((r) => `${r.id} ${r.name} ${r.owner.email ?? ""} ${r.verified ? "ยืนยัน" : "ยังไม่ยืนยัน"} ${r.demoBatchId ? "เตรียมไว้" : "จริง"}`)}
       rows={rows.map((r) => [
         <Link key="name" href={`/store/${r.slug}`}>
-          {r.name}{r.demoBatchId ? " · สาธิต" : ""}
+          {r.name}
         </Link>,
         r.owner.email,
         <span key="status">
@@ -47,6 +48,7 @@ export default async function Stores() {
           >
             {r.suspended ? "ปลดระงับ" : "ระงับ"}
           </ApiButton>
+          <AdminDeleteButton endpoint={`/api/admin/stores/${r.id}`} name={`ร้าน ${r.name}`} related />
         </div>,
       ])}
     />

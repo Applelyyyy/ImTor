@@ -25,6 +25,7 @@ export function MerchantProductManager({ storeId, categories, products }: { stor
   const hydrated = useHydrated();
   const searchId = useId();
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
   const [state, setState] = useState<ProductEditorState>({dirty:false,busy:false});
   const [busyId, setBusyId] = useState<string | null>(null);
   const [refreshing, startRefresh] = useTransition();
@@ -61,12 +62,16 @@ export function MerchantProductManager({ storeId, categories, products }: { stor
   const archived = visible.filter((p) => p.archived);
   const renderRow = (p: ManagedProduct) => <article className={styles.row} key={p.id} aria-label={p.name} data-product-id={p.id}>
     <div className={styles.image}><Image src={p.imageUrl} alt="" fill sizes="68px" /></div>
-    <div className={styles.name}>{p.name}{p.demo && <small>สินค้าสาธิต</small>}</div>
+    <div className={styles.name}>{p.name}</div>
     <div className={styles.price}>{money(p.currentPrice)}{p.currentPrice !== p.price && <del>{money(p.price)}</del>}</div>
     <div className={styles.stock}>{p.stock === null ? "ไม่ติดตามจำนวน" : p.stock === 0 ? "สินค้าหมด" : `คงเหลือ ${p.stock.toLocaleString("th-TH")} ชิ้น`}<small><Badge variant={p.published && !p.archived ? "default" : "secondary"}>{p.archived ? "เก็บเข้าคลัง" : p.published ? "เผยแพร่" : "พักขาย"}</Badge></small></div>
     <div className={styles.actions}>
       <Button variant="outline" size="sm" disabled={!hydrated || !!busyId || refreshing} onClick={(event) => {opener.current=event.currentTarget;open({action:"edit",product:p});}}>แก้ไข</Button>
-      <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" onPointerDownCapture={(event)=>{opener.current=event.currentTarget;}} onKeyDownCapture={(event)=>{opener.current=event.currentTarget;}} aria-label={`จัดการ ${p.name}`} disabled={!hydrated || !!busyId || refreshing}><MoreHorizontal aria-hidden="true" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuGroup>
+      <DropdownMenu open={menuId === p.id} onOpenChange={(next) => setMenuId(next ? p.id : null)}><DropdownMenuTrigger asChild><Button variant="ghost" size="icon"
+        // Open after pointer release so a newly positioned menu cannot consume the trigger's pointer-up.
+        onPointerDown={(event) => event.preventDefault()}
+        onClick={() => setMenuId((current) => current === p.id ? null : p.id)}
+        onPointerDownCapture={(event)=>{opener.current=event.currentTarget;}} onKeyDownCapture={(event)=>{opener.current=event.currentTarget;}} aria-label={`จัดการ ${p.name}`} disabled={!hydrated || !!busyId || refreshing}><MoreHorizontal aria-hidden="true" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuGroup>
         <DropdownMenuItem onSelect={() => open({action:"edit",product:p})}>แก้ไข</DropdownMenuItem>
         {!p.archived && <><DropdownMenuItem onSelect={() => open({action:"stock",product:p})}>ปรับจำนวน</DropdownMenuItem><DropdownMenuItem onSelect={() => open({action:"price",product:p})}>เปลี่ยนราคา</DropdownMenuItem><DropdownMenuItem onSelect={() => open({action:"discount",product:p})}>ตั้งส่วนลด</DropdownMenuItem></>}
         <DropdownMenuItem onSelect={() => void mutate(p,"duplicate")}>ทำซ้ำ</DropdownMenuItem>

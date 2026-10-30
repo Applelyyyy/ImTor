@@ -1,3 +1,5 @@
+import { PickupScanner } from "@/components/pickup-scanner";
+import { AdminDeleteButton } from "@/components/admin-delete-button";
 import { requireAdmin } from "@/components/auth-guard";
 import { db } from "@/lib/db";
 import { AdminTable } from "@/components/admin";
@@ -14,6 +16,7 @@ export default async function Reservations() {
   });
   return (
     <>
+      <div className="mb-5"><PickupScanner /></div>
       <AdminTable
         title="การจองทั้งหมด"
         description="ราคาในการจองเป็นราคาที่ยืนยันตอนจอง ไม่เปลี่ยนตามส่วนลดภายหลัง"
@@ -24,13 +27,13 @@ export default async function Reservations() {
           "สถานะ",
           "หมดเวลารับ",
           "ยืนยันการรับ",
+          "จัดการ",
         ]}
         total={total}
-      searchValues={rows.map((r) => `${r.id} ${r.product.name} ${r.product.store.name} ${r.user.name ?? ""} ${r.user.email ?? ""} ${r.status} ${statusLabel[r.status] || r.status} ${r.demoBatchId ? "สาธิต" : "จริง"}`)}
+      searchValues={rows.map((r) => `${r.id} ${r.product.name} ${r.product.store.name} ${r.user.name ?? ""} ${r.user.email ?? ""} ${r.status} ${statusLabel[r.status] || r.status} ${r.demoBatchId ? "เตรียมไว้" : "จริง"}`)}
       rows={rows.map((r) => [
           <div key="product">
             {r.product.name}
-            {r.demoBatchId && <small className="block">การจองสาธิต · ไม่มีการซื้อขายจริง</small>}
             <small className="block">{r.product.store.name}</small>
           </div>,
           r.user.name || "ไม่ระบุ",
@@ -40,8 +43,9 @@ export default async function Reservations() {
           r.status === "RESERVED" ? <details key="pickup"><summary className="cursor-pointer">ยืนยันด้วยรหัสรับสินค้า</summary>
             <ApiForm endpoint={`/api/reservations/${r.id}`} method="PATCH" body={{ status: "COMPLETED" }}
               fields={[{ name: "pickupCode", label: "รหัสที่ลูกค้าแสดง", required: true }]}
-              submit={r.demoBatchId ? "ยืนยันรับสาธิต" : "ยืนยันรับสินค้า"} />
+              submit="ยืนยันรับสินค้า" />
             </details> : "—",
+          <AdminDeleteButton key="delete" endpoint={`/api/admin/reservations/${r.id}`} name="การจองนี้" />,
         ])}
       />
       <div className="mt-6">

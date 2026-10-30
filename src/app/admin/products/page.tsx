@@ -1,3 +1,4 @@
+import { AdminDeleteButton } from "@/components/admin-delete-button";
 import { requireAdmin } from "@/components/auth-guard";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -17,14 +18,13 @@ export default async function Products() {
     <AdminTable
       title="จัดการสินค้า"
       description="ตรวจสอบราคา การแสดงผล และรายงานปัญหา"
-      headers={["สินค้า", "ร้าน", "ราคา", "รายงาน", "จัดการ", "จำลองราคา"]}
+      headers={["สินค้า", "ร้าน", "ราคา", "รายงาน", "จัดการ", "ดูราคา"]}
       total={total}
-      searchValues={rows.map((r) => `${r.id} ${r.name} ${r.store.name} ${r.archived ? "คลัง" : ""} ${r.demoBatchId ? "สาธิต" : "จริง"}`)}
+      searchValues={rows.map((r) => `${r.id} ${r.name} ${r.store.name} ${r.archived ? "คลัง" : ""} ${r.demoBatchId ? "เตรียมไว้" : "จริง"}`)}
       rows={rows.map((r) => [
         <div key="name">
           {r.published && !r.archived && !r.store.hidden && !r.store.suspended ? <Link href={`/product/${r.id}`}>{r.name}</Link> : <strong>{r.name}</strong>}
-          {r.demoBatchId ? " · สาธิต" : ""}{r.archived ? " · เก็บเข้าคลัง" : ""}
-          <small className="help-text block">{r.id}</small>
+          {r.archived ? " · ซ่อน" : ""}
         </div>,
         r.store.name,
         money(r.price),
@@ -41,12 +41,7 @@ export default async function Products() {
           >
             {r.published ? "ซ่อน" : "เผยแพร่"}
           </ApiButton>
-          <ApiButton
-            endpoint={`/api/admin/products/${r.id}`}
-            body={{ archived: !r.archived }}
-          >
-            {r.archived ? "นำกลับ" : "เก็บเข้าคลัง"}
-          </ApiButton>
+          <AdminDeleteButton endpoint={`/api/admin/products/${r.id}`} name={`สินค้า ${r.name}`} related />
         </div>,
         <DemoPricePreview key="pricing" productId={r.id} />,
       ])}

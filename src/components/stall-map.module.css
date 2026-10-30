@@ -10,7 +10,7 @@
 .mapColumn { min-width: 0; }
 .viewport { overflow: auto; border-radius: 1rem; max-height: min(65dvh, 42rem); min-width: 0; }
 .toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: 0 0 .6rem; }
-.panel { position: sticky; top: 5rem; min-width: 0; border: 1px solid var(--border); border-radius: 1rem; background: var(--card); padding: 1rem; max-height: calc(100dvh - 7rem); overflow: auto; }
+.panel { position: sticky; top: 1rem; min-width: 0; border: 1px solid var(--border); border-radius: 1rem; background: var(--card); padding: 1rem; max-height: calc(100dvh - 7rem); overflow: auto; }
 .panelHeader { display: flex; align-items: start; gap: .5rem; justify-content: space-between; margin-bottom: .8rem; }
 .panelHeader h2 { font-size: 1.125rem; line-height: 1.5; margin: 0; overflow-wrap: anywhere; }
 .details { display: grid; gap: .8rem; min-width: 0; font-size: .875rem; }

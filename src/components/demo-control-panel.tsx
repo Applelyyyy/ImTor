@@ -15,7 +15,7 @@ const defaults: RealisticDemoConfig = {
 };
 const stages: Record<RealisticDemoState["stage"], string> = {
   MEDIA: "เตรียมและตรวจสอบภาพ", DATA: "สร้างข้อมูลในฐานข้อมูล", VALIDATE: "ตรวจสอบความสอดคล้อง",
-  READY: "พร้อมสาธิต", ERROR: "พบปัญหา", CLEANING: "กำลังล้างข้อมูล", REMOVED: "ล้างข้อมูลแล้ว",
+  READY: "พร้อมใช้งาน", ERROR: "พบปัญหา", CLEANING: "กำลังล้างข้อมูล", REMOVED: "ล้างข้อมูลแล้ว",
 };
 async function api<T>(url: string, body?: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
   const response = await fetch(url, { method: body ? "POST" : "GET", cache: "no-store", signal,
@@ -81,24 +81,24 @@ export function DemoControlPanel({ enabled, initialBatches }: {
     router.refresh();
   });
   const numeric: { name: "markets" | "zones" | "stalls" | "stores" | "products" | "customers" | "reservations" | "historyDays" | "futureDays"; label: string; min: number; max: number }[] = [
-    { name: "markets", label: "ตลาดสมมติ", min: 1, max: 8 },
+    { name: "markets", label: "ตลาด", min: 1, max: 8 },
     { name: "zones", label: "โซนรวมทุกตลาด", min: 1, max: 64 },
     { name: "stalls", label: "ล็อกรวมทุกตลาด", min: 1, max: 500 },
-    { name: "stores", label: "ร้านค้าสมมติ", min: 1, max: 100 },
+    { name: "stores", label: "ร้านค้า", min: 1, max: 100 },
     { name: "products", label: "สินค้า", min: 1, max: 1000 },
-    { name: "customers", label: "ลูกค้าสมมติ", min: 1, max: 500 },
-    { name: "reservations", label: "การจองสาธิต", min: 0, max: 3000 },
+    { name: "customers", label: "ลูกค้า", min: 1, max: 500 },
+    { name: "reservations", label: "การจอง", min: 0, max: 3000 },
     { name: "historyDays", label: "วันย้อนหลัง", min: 1, max: 90 },
     { name: "futureDays", label: "วันล่วงหน้า", min: 1, max: 90 },
   ];
   return <div className="stack" aria-busy={busy}>
-    {!enabled && <p role="note" className="content-panel">ยังไม่เปิดการเปลี่ยนข้อมูลสาธิต ต้องเปิด DEMO_MODE และ ENABLE_DEMO_GENERATOR ที่เซิร์ฟเวอร์ก่อน ดูสถานะชุดเดิมได้โดยไม่แก้ไขข้อมูล</p>}
+    {!enabled && <p role="note" className="content-panel">ยังไม่เปิดการเปลี่ยนชุดข้อมูล ต้องเปิด DEMO_MODE และ ENABLE_DEMO_GENERATOR ที่เซิร์ฟเวอร์ก่อน ดูสถานะชุดเดิมได้โดยไม่แก้ไขข้อมูล</p>}
     <section className="form-panel">
-      <h2>ชุดสาธิตที่ปรับขนาดได้</h2>
-      <p className="help-text mb-5">ไม่มีการสร้างบัญชี Google หรือเซสชันให้ลูกค้าสมมติ ข้อมูลจริงที่มีอยู่ไม่ถูกแก้ไข</p>
+      <h2>ชุดข้อมูลที่ปรับขนาดได้</h2>
+      <p className="help-text mb-5">ไม่มีการสร้างบัญชี Google หรือเซสชันให้ลูกค้า ข้อมูลจริงที่มีอยู่ไม่ถูกแก้ไข</p>
       <form onSubmit={(e) => { e.preventDefault(); void perform(async (signal) => { setPreview(await api(endpoint, { action: "preview", config }, signal)); }); }}>
         <fieldset disabled={busy || !enabled} className="space-y-5">
-          <legend className="sr-only">กำหนดข้อมูลสาธิต</legend>
+          <legend className="sr-only">กำหนดชุดข้อมูล</legend>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="outline" onClick={() => setConfig({ ...defaults, idempotencyKey: config.idempotencyKey, seed: config.seed })}>ครบชุด 30 ร้าน</Button>
             <Button type="button" variant="outline" onClick={() => setConfig({ ...defaults, markets: 1, zones: 4, stalls: 28, stores: 10, products: 50, customers: 30, reservations: 60, seed: config.seed, idempotencyKey: config.idempotencyKey })}>ชุดเล็ก 10 ร้าน</Button>
@@ -156,12 +156,12 @@ export function DemoControlPanel({ enabled, initialBatches }: {
       </div>}
     </section>
     <section className="form-panel">
-      <h2>ปรับชุดสาธิตที่เลือก</h2>
+      <h2>ปรับชุดข้อมูลที่เลือก</h2>
       <fieldset disabled={busy || !enabled || !active || state?.stage !== "READY"} className="mt-4 space-y-5">
         <legend className="sr-only">การทำงานกับชุดข้อมูล</legend>
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-2" htmlFor="demo-count">จำนวนที่จะเพิ่ม<Input id="demo-count" type="number" min={1} max={100} value={count} onChange={(e) => setCount(Number(e.target.value))} /></label>
-          <Button variant="outline" onClick={() => void action("add-merchants", { count })}>เพิ่มร้านค้าสมมติ</Button>
+          <Button variant="outline" onClick={() => void action("add-merchants", { count })}>เพิ่มร้านค้า</Button>
           <Button variant="outline" onClick={() => void action("add-products", { count })}>เพิ่มสินค้า</Button>
         </div>
         <div className="flex flex-wrap items-end gap-3">
@@ -176,24 +176,24 @@ export function DemoControlPanel({ enabled, initialBatches }: {
         <p className="help-text">ปุ่มภาพใช้ไฟล์ต้นฉบับ AI ที่เตรียมไว้ ไม่ใช่การสร้างภาพ AI ใหม่ และไม่เปลี่ยนภาพที่ยังใช้งานได้เมื่ออัปโหลดล้มเหลว</p>
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="flex flex-col gap-2" htmlFor="demo-product">รหัสสินค้าในชุดนี้<Input id="demo-product" value={productId} onChange={(e) => setProductId(e.target.value)} /></label>
-          <label className="flex flex-col gap-2" htmlFor="demo-at">เวลาจำลอง (กรุงเทพฯ)<Input id="demo-at" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} /></label>
-          <label className="flex flex-col gap-2" htmlFor="demo-quantity">จำนวนจองจำลอง<Input id="demo-quantity" type="number" min={1} max={99} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} /></label>
+          <label className="flex flex-col gap-2" htmlFor="demo-at">เวลา (กรุงเทพฯ)<Input id="demo-at" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} /></label>
+          <label className="flex flex-col gap-2" htmlFor="demo-quantity">จำนวนจอง<Input id="demo-quantity" type="number" min={1} max={99} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} /></label>
         </div>
         <div className="flex flex-wrap gap-3">
           <Button variant="outline" disabled={!productId || !at} onClick={() => void action("discount-scenario", { productId, at: new Date(`${at}+07:00`).toISOString() })}>ดูสถานการณ์ส่วนลดตามเวลา</Button>
-          <Button variant="outline" disabled={!productId} onClick={() => void action("reservation-scenario", { productId, quantity })}>สร้างสถานการณ์จองสาธิต</Button>
+          <Button variant="outline" disabled={!productId} onClick={() => void action("reservation-scenario", { productId, quantity })}>สร้างสถานการณ์จองเตรียมไว้</Button>
         </div>
-        <p className="help-text">เป็นสถานการณ์จำลองของชุดนี้เท่านั้น ไม่เปลี่ยนนาฬิกาเซิร์ฟเวอร์หรือสวมสิทธิ์ลูกค้าจริง</p>
+        <p className="help-text">เป็นสถานการณ์ของชุดนี้เท่านั้น ไม่เปลี่ยนนาฬิกาเซิร์ฟเวอร์หรือสวมสิทธิ์ลูกค้าจริง</p>
       </fieldset>
     </section>
     <section className="content-panel">
       <h2>ล้างเฉพาะชุดที่เลือก</h2>
-      <p className="mb-4">จะลบข้อมูลและภาพที่เป็นของชุดนี้ รวมการจองสาธิตของผู้เยี่ยมชมที่ยังรอรับ แต่เก็บบัญชีผู้ใช้จริงไว้ ไม่ลบภาพหรือข้อมูลจริง</p>
+      <p className="mb-4">จะลบข้อมูลและภาพที่เป็นของชุดนี้ รวมการจองของผู้เยี่ยมชมที่ยังรอรับ แต่เก็บบัญชีผู้ใช้จริงไว้ ไม่ลบภาพหรือข้อมูลจริง</p>
       <label className="flex flex-col gap-2" htmlFor="demo-cleanup-id">พิมพ์รหัสชุดเพื่อยืนยัน<Input id="demo-cleanup-id" disabled={busy || !active} value={confirmBatchId} onChange={(e) => setConfirmBatchId(e.target.value)} autoComplete="off" /></label>
-      <label className="my-4 flex items-start gap-3"><input type="checkbox" disabled={busy || !active} checked={confirmCleanup} onChange={(e) => setConfirmCleanup(e.target.checked)} />ยืนยันลบการจองสาธิตของผู้เยี่ยมชมในชุดนี้ด้วย รวมรายการที่ยังรอรับ โดยเก็บบัญชีจริงไว้</label>
+      <label className="my-4 flex items-start gap-3"><input type="checkbox" disabled={busy || !active} checked={confirmCleanup} onChange={(e) => setConfirmCleanup(e.target.checked)} />ยืนยันลบการจองของผู้เยี่ยมชมในชุดนี้ด้วย รวมรายการที่ยังรอรับ โดยเก็บบัญชีจริงไว้</label>
       <Button variant="destructive" disabled={busy || !enabled || !active || confirmBatchId !== batchId || !confirmCleanup} onClick={() => void action("cleanup", { confirmBatchId, acknowledgeVisitorReservations: true })}>ล้างชุด {batchId || "ที่เลือก"}</Button>
     </section>
-    {busy && <p role="status">กำลังรอผลจากเซิร์ฟเวอร์… แสดงขั้นตอนที่บันทึกจริง ไม่มีเปอร์เซ็นต์สมมติ</p>}
+    {busy && <p role="status">กำลังรอผลจากเซิร์ฟเวอร์… แสดงขั้นตอนที่บันทึกจริง ไม่มีเปอร์เซ็นต์</p>}
     {error && <p className="form-error" role="alert">{error} · โหลดสถานะล่าสุดก่อนลองทำต่อ</p>}
     {result && <pre className="max-h-80 overflow-auto whitespace-pre-wrap break-words text-sm" role="status">{result}</pre>}
   </div>;
@@ -204,17 +204,17 @@ export function DemoPricePreview({ productId }: { productId: string }) {
   const [price, setPrice] = useState<PriceView | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  return <details><summary className="cursor-pointer">ดูราคาที่เวลาจำลอง</summary>
+  return <details><summary className="cursor-pointer">ดูราคาตามเวลา</summary>
     <form className="mt-3 min-w-52 space-y-3" onSubmit={async (e) => {
       e.preventDefault(); if (busy) return; setBusy(true); setError(""); setPrice(null);
       try { const iso = new Date(`${at}+07:00`).toISOString(); setPrice(await api<PriceView>(`/api/products/${encodeURIComponent(productId)}/pricing?at=${encodeURIComponent(iso)}`)); }
       catch (e) { setError(e instanceof Error ? e.message : "ดูราคาไม่สำเร็จ"); } finally { setBusy(false); }
     }}>
-      <label className="flex flex-col gap-2">เวลาจำลอง (กรุงเทพฯ)<Input type="datetime-local" required value={at} onChange={(e) => setAt(e.target.value)} /></label>
-      <Button variant="outline" size="sm" disabled={busy}>คำนวณราคาจำลอง</Button>
-      {price && <p role="status">ราคาจำลอง {money(price.current)} จาก {money(price.original)} · ลด {price.discountPercent}%</p>}
+      <label className="flex flex-col gap-2">เวลา (กรุงเทพฯ)<Input type="datetime-local" required value={at} onChange={(e) => setAt(e.target.value)} /></label>
+      <Button variant="outline" size="sm" disabled={busy}>คำนวณราคา</Button>
+      {price && <p role="status">ราคา {money(price.current)} จาก {money(price.original)} · ลด {price.discountPercent}%</p>}
       {error && <p role="alert">{error}</p>}
-      <p className="help-text">ตัวอย่างจากกฎราคาจริง ไม่เปลี่ยนราคาหรือนาฬิการะบบ</p>
+      <p className="help-text">จากกฎราคาจริง ไม่เปลี่ยนราคาหรือนาฬิการะบบ</p>
     </form>
   </details>;
 }

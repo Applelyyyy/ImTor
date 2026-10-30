@@ -15,6 +15,18 @@
       "fictional": true
     },
     {
+      "id": "canvas-tote",
+      "kind": "products",
+      "file": "canvas-tote.webp",
+      "sha256": "3b09e3fd6893c94e5b2681f4e081ae476b6fa766fc920ce401afed027acb2a85",
+      "sourceSha256": "e145db99dced4e12b4fad98ac12279ef8534889c34a7629614e05e8af0552f0f",
+      "bytes": 107278,
+      "width": 800,
+      "height": 1000,
+      "prompt": "Use case: product-mockup. Asset type: original fictional ImTor campus-market product photograph (canvas-tote). Subject: one plain natural cream canvas tote bag, laid flat with its two fabric handles arranged above the bag, fully visible; no contents or decorative print. Realistic modest everyday student product with physically plausible materials and construction. On a pale wooden tabletop in soft natural daylight. Vertical 4:5 image, full subject visible with comfortable margins, clean uncluttered background, softly defined natural shadows, realistic fine texture. No people, hands, text, letters, labels, logos, brands, watermark or unrelated objects. A standalone product photograph, not a collage or contact sheet.",
+      "fictional": true
+    },
+    {
       "id": "chicken-rice",
       "kind": "products",
       "file": "chicken-rice.webp",
@@ -36,6 +48,42 @@
       "width": 800,
       "height": 1000,
       "prompt": "Use case: product-mockup. Asset type: ImTor fictional Thai campus marketplace product photograph (fried-rice). Primary subject: Thai pork fried rice with egg, spring onion, cucumber and lime wedge. Authentic Thai preparation, physically plausible ingredients and tableware, modest campus-market portion, appetizing natural textures and warm colors, simple pale wood tabletop, soft daylight, clean uncluttered background, shallow depth of field. Vertical4:5 framing with subject fully visible and comfortable margins. No people, hands, text, labels, logos, watermark, brand packaging. Original realistic illustrative photograph, not real seller imagery.",
+      "fictional": true
+    },
+    {
+      "id": "gel-pens",
+      "kind": "products",
+      "file": "gel-pens.webp",
+      "sha256": "81e5d44992626e81cd6cf21ec886b63dbbdaf4eb032f0706b96963dad03317ed",
+      "sourceSha256": "b202bc6c1230c3ecb297cb97e8c0831507c4012d8c470aa9f548906e3d311e96",
+      "bytes": 72088,
+      "width": 800,
+      "height": 1000,
+      "prompt": "Use case: product-mockup. Asset type: original fictional ImTor campus-market product photograph (gel-pens). Subject: exactly three unbranded gel pens, one black, one blue and one red, arranged neatly side by side; no packaging or writing. Realistic modest everyday student product with physically plausible materials and construction. On a pale wooden tabletop in soft natural daylight. Vertical 4:5 image, full subject visible with comfortable margins, clean uncluttered background, softly defined natural shadows, realistic fine texture. No people, hands, text, letters, labels, logos, brands, watermark or unrelated objects. A standalone product photograph, not a collage or contact sheet.",
+      "fictional": true
+    },
+    {
+      "id": "hair-scrunchies",
+      "kind": "products",
+      "file": "hair-scrunchies.webp",
+      "sha256": "1ee0ab08c4f8d36d1179b2e2ea324b99d31752074e572ed5b83c9b77a9a8d335",
+      "sourceSha256": "a08451a1161f225252f57bdea4a02f2b0e1b1b6446a99cadb15c6ac1591c0b34",
+      "bytes": 94302,
+      "width": 800,
+      "height": 1000,
+      "prompt": "Use case: product-mockup. Asset type: original fictional ImTor campus-market product photograph (hair-scrunchies). Subject: exactly three pastel fabric hair scrunchies, one blush pink, one pale lavender and one pale mint, neatly arranged with each circular fabric gathered elastic ring fully visible; no packaging. Realistic modest everyday student product with physically plausible materials and construction. On a pale wooden tabletop in soft natural daylight. Vertical 4:5 image, full subject visible with comfortable margins, clean uncluttered background, softly defined natural shadows, realistic fine texture. No people, hands, text, letters, labels, logos, brands, watermark or unrelated objects. A standalone product photograph, not a collage or contact sheet.",
+      "fictional": true
+    },
+    {
+      "id": "notebook",
+      "kind": "products",
+      "file": "notebook.webp",
+      "sha256": "01fdb4dffcfeed4beac0cd4c6aa8a289fa9b7e71f895ce5d03444cd0e47cb2c7",
+      "sourceSha256": "258ab80bab0cdf62c02273d83a1941153c95852b7898f8d52e58d62a2b8b4c1e",
+      "bytes": 89874,
+      "width": 800,
+      "height": 1000,
+      "prompt": "Use case: product-mockup. Asset type: original fictional ImTor campus-market product photograph (notebook). Subject: one plain unbranded kraft-brown A5 notebook, partly open to blank cream pages; no pen or other props. Realistic modest everyday student product with physically plausible materials and construction. On a pale wooden tabletop in soft natural daylight. Vertical 4:5 image, full subject visible with comfortable margins, clean uncluttered background, softly defined natural shadows, realistic fine texture. No people, hands, text, letters, labels, logos, brands, watermark or unrelated objects. A standalone product photograph, not a collage or contact sheet.",
       "fictional": true
     },
     {

@@ -176,10 +176,9 @@ export class AdminService {
   static async deleteRule(actor: Actor, id: string) {
     assertAdmin(actor);
     await transaction(async (tx) => {
-      const r = await tx.marketScheduleRule.findUniqueOrThrow({
+      await tx.marketScheduleRule.findUniqueOrThrow({
         where: { id },
       });
-      await resetFuture(tx, r.marketId);
       await tx.marketScheduleRule.delete({ where: { id } });
       await audit(tx, actor, "SCHEDULE_DELETED", id);
     });

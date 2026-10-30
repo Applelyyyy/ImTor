@@ -23,7 +23,7 @@ import {
 import { money } from "@/lib/utils";
 import { publicFeatures } from "@/lib/queries";
 import type { MarketView, ProductView } from "@/lib/contracts";
-import { NavigationLink, FormSubmit } from "@/components/pending-controls";
+import { FormSubmit } from "@/components/pending-controls";
 export const statusLabel: Record<string, string> = {
   OPEN: "เปิดตามเวลาตลาด",
   SCHEDULED: "รอเปิดตามตาราง",
@@ -52,7 +52,6 @@ export function date(value: string) {
 }
 export function PageHeading({
   title,
-  description,
   children,
 }: {
   title: string;
@@ -63,7 +62,6 @@ export function PageHeading({
     <div className="page-heading">
       <div>
         <h1>{title}</h1>
-        {description && <p>{description}</p>}
       </div>
       {children}
     </div>
@@ -71,7 +69,7 @@ export function PageHeading({
 }
 export function EmptyState({
   title = "ยังไม่มีรายการในตอนนี้",
-  description = "ลองเปลี่ยนตัวกรอง หรือกลับมาค้นพบสิ่งใหม่ ๆ อีกครั้ง",
+  description,
   children,
 }: {
   title?: string;
@@ -85,7 +83,7 @@ export function EmptyState({
           <ShoppingBag />
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
-        <EmptyDescription>{description}</EmptyDescription>
+        {description && <EmptyDescription>{description}</EmptyDescription>}
       </EmptyHeader>
       {children}
     </Empty>
@@ -118,7 +116,6 @@ export function ProductCard({
               ช่วยลดอาหารเหลือ
             </Badge>
           )}
-          {p.demo && <Badge variant="outline">ตัวอย่าง</Badge>}
         </div>
         {p.stock === 0 && <span className="sold-out">สินค้าหมด</span>}
       </Link>
@@ -233,9 +230,7 @@ export function MarketPanel({ markets }: { markets: MarketView[] }) {
       <Link className="panel-footer" href="/markets">
         {sessions.length > 2
           ? `ดูอีก ${sessions.length - 2} ตลาด และตารางทั้งสัปดาห์`
-          : sessions.some(({ m }) => m.demo)
-            ? "มีตลาดตัวอย่าง · ดูตารางทั้งหมด"
-            : "วางแผนความอร่อย ดูตารางทั้งสัปดาห์"}{" "}
+          : "ดูตารางทั้งหมด"}{" "}
         <ArrowUpRight size={17} />
       </Link>
     </aside>
@@ -288,48 +283,48 @@ export async function CategoryFilters({
     }).toString();
   return (
     <nav className="category-filters" aria-label="หมวดหมู่สินค้า">
-      <NavigationLink
+      <Link
         className={!active && !filter ? "category active" : "category"}
         aria-current={!active && !filter ? "page" : undefined}
         href={href("", "")}
       >
         <UtensilsCrossed />
         ทั้งหมด
-      </NavigationLink>
+      </Link>
+      {features.foodRescueEnabled && (
+        <Link
+          className={filter === "rescue" ? "category active" : "category"}
+          aria-current={filter === "rescue" ? "page" : undefined}
+          href={href("", "rescue")}
+        >
+          <Leaf />
+          อิ่มคุ้ม
+        </Link>
+      )}
+      <Link
+        className={filter === "discount" ? "category active" : "category"}
+        aria-current={filter === "discount" ? "page" : undefined}
+        href={href("", "discount")}
+      >
+        ลดราคา
+      </Link>
+      <Link
+        className={filter === "open" ? "category active" : "category"}
+        aria-current={filter === "open" ? "page" : undefined}
+        href={href("", "open")}
+      >
+        ขายอยู่ตอนนี้
+      </Link>
       {categories.map((c) => (
-        <NavigationLink
+        <Link
           key={c.id}
           className={active === c.id ? "category active" : "category"}
           aria-current={active === c.id ? "page" : undefined}
           href={href(c.id, "")}
         >
           {c.name}
-        </NavigationLink>
+        </Link>
       ))}
-      <NavigationLink
-        className={filter === "discount" ? "category active" : "category"}
-        aria-current={filter === "discount" ? "page" : undefined}
-        href={href("", "discount")}
-      >
-        ดีลลดราคา
-      </NavigationLink>
-      {features.foodRescueEnabled && (
-        <NavigationLink
-          className={filter === "rescue" ? "category active" : "category"}
-          aria-current={filter === "rescue" ? "page" : undefined}
-          href={href("", "rescue")}
-        >
-          <Leaf />
-          อิ่มคุ้มลดเหลือ
-        </NavigationLink>
-      )}
-      <NavigationLink
-        className={filter === "open" ? "category active" : "category"}
-        aria-current={filter === "open" ? "page" : undefined}
-        href={href("", "open")}
-      >
-        ขายอยู่ตอนนี้
-      </NavigationLink>
     </nav>
   );
 }

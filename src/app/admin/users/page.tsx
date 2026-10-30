@@ -1,3 +1,4 @@
+import { AdminDeleteButton } from "@/components/admin-delete-button";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/components/auth-guard";
 import { AdminTable } from "@/components/admin";
@@ -15,12 +16,11 @@ export default async function Users() {
       description="ค้นหาและแบ่งหน้าข้อมูลที่โหลด สิทธิ์ระดับสูงจัดการได้โดยผู้ดูแลสูงสุดเท่านั้น"
       headers={["ชื่อ / อีเมล", "สิทธิ์", "สถานะ", "จัดการ"]}
       total={total}
-      searchValues={rows.map((r) => `${r.id} ${r.name ?? ""} ${r.email ?? ""} ${r.role} ${r.suspended ? "ระงับ" : "ปกติ"} ${r.demoBatchId ? "สาธิต" : "จริง"}`)}
+      searchValues={rows.map((r) => `${r.id} ${r.name ?? ""} ${r.email ?? ""} ${r.role} ${r.suspended ? "ระงับ" : "ปกติ"} ${r.demoBatchId ? "เตรียมไว้" : "จริง"}`)}
       rows={rows.map((r) => [
         <div key="name">
           <strong>{r.name || "ไม่ระบุชื่อ"}</strong>
           <div className="help-text">{r.email}</div>
-          {r.demoBatchId && <small>บัญชีสมมติ · สาธิต</small>}
         </div>,
         r.role,
         r.suspended ? "ระงับ" : "ปกติ",
@@ -40,6 +40,7 @@ export default async function Users() {
               {r.role === "USER" ? "ตั้งเป็นผู้ดูแล" : "ตั้งเป็นผู้ใช้"}
             </ApiButton>
           )}
+          {r.id !== actor.id && (actor.role === "SUPERADMIN" || r.role === "USER") && <AdminDeleteButton endpoint={`/api/admin/users/${r.id}`} name={`ผู้ใช้ ${r.name || "ไม่ระบุชื่อ"}`} related />}
         </div>,
       ])}
     />

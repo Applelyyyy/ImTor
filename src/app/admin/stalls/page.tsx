@@ -1,3 +1,4 @@
+import { AdminDeleteButton } from "@/components/admin-delete-button";
 import { requireAdmin } from "@/components/auth-guard";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -33,6 +34,7 @@ export default async function Stalls() {
           >
             {r.active ? "ปิดใช้งาน" : "เปิดใช้งาน"}
           </ApiButton>
+          <AdminDeleteButton endpoint={`/api/admin/stalls/${r.id}`} name={`ล็อก ${r.code}`} related />
         </div>,
       ])}
     />

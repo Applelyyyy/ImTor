@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { Menu, LayoutDashboard, Package, Store, Users, Map, MapPin, CalendarCheck, ShoppingBag, Flag, ChartNoAxesCombined, Settings, Database, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -12,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+const icons = [LayoutDashboard, Package, Store, Users, Map, MapPin, CalendarCheck, ShoppingBag, Flag, ChartNoAxesCombined, Settings, Database, History];
 const groups = [
   {
     title: "ภาพรวมและเนื้อหา",
@@ -37,7 +38,7 @@ const groups = [
       ["reports", "รายงานปัญหา"],
       ["analytics", "ผลลัพธ์และสถิติ"],
       ["settings", "ตั้งค่าระบบ"],
-      ["demo-generator", "ข้อมูลสาธิต"],
+      ["demo-generator", "ชุดข้อมูล"],
       ["audit-logs", "บันทึกการจัดการ"],
     ],
   },
@@ -47,10 +48,11 @@ export function AdminNavigation() {
     [open, setOpen] = useState(false);
   const navigation = (
     <nav aria-label="เมนูผู้ดูแล" className="admin-navigation">
-      {groups.map((group) => (
+      {groups.map((group, groupIndex) => (
         <section key={group.title}>
           <h3>{group.title}</h3>
-          {group.links.map(([path, label]) => {
+          {group.links.map(([path, label], linkIndex) => {
+            const Icon = icons[groups.slice(0, groupIndex).reduce((n, g) => n + g.links.length, 0) + linkIndex];
             const href = `/admin${path ? `/${path}` : ""}`;
             const active = path
               ? pathname === href || pathname.startsWith(`${href}/`)
@@ -62,7 +64,7 @@ export function AdminNavigation() {
                 aria-current={active ? "page" : undefined}
                 onClick={() => setOpen(false)}
               >
-                {label}
+                <Icon size={18} aria-hidden="true" /><span>{label}</span>
               </Link>
             );
           })}
@@ -86,7 +88,7 @@ export function AdminNavigation() {
           </SheetTrigger>
           <SheetContent side="left">
             <SheetHeader>
-              <SheetTitle>จัดการอิ่มต่อ</SheetTitle>
+              <SheetTitle className="admin-navigation-title">จัดการอิ่มต่อ</SheetTitle>
               <SheetDescription>เลือกส่วนที่ต้องการจัดการ</SheetDescription>
             </SheetHeader>
             <div className="p-5 overflow-y-auto">{navigation}</div>

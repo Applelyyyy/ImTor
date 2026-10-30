@@ -1,3 +1,4 @@
+import { AdminDeletionService, type DeletionKind } from "@/services/admin-deletion";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireUser, requireAdmin } from "@/lib/auth";
@@ -17,7 +18,8 @@ import {
 } from "@/services/resource-lifecycle";
 import { MarketScheduleService } from "@/services/schedule";
 import { PricingService } from "@/services/pricing";
-import { profileSchema } from "@/lib/validation";
+import { profileSchema, attendanceSchema } from "@/lib/validation";
+import { reportSchema } from "@/lib/report-validation";
 export const dynamic = "force-dynamic";
 type Context = { params: Promise<{ path: string[] }> };
 async function handle(request: Request, context: Context) {
@@ -127,16 +129,36 @@ async function handle(request: Request, context: Context) {
       }
     }
     if (p[0] === "attendance") {
-      if (method === "POST")
-        return success(
-          await AttendanceService.save(
-            actor,
-            body as Parameters<typeof AttendanceService.save>[1],
-          ),
-          201,
-        );
-      if (method === "PATCH" && p[1])
-        return success(await AttendanceService.update(actor, p[1], body));
+      if (method === "GET" && p[1] === "selection" && p.length === 2) {
+        const parsed = z.string().min(1).max(100).safeParse(url.searchParams.get("storeId"));
+        if (!parsed.success) throw new AppError(400, "กรุณาเลือกร้าน");
+        const { attendanceSelection } = await import("@/lib/attendance-selection");
+        return success(await attendanceSelection(actor, parsed.data));
+      }
+      if (method === "POST" && p.length === 1) {
+        const parsed = attendanceSchema.safeParse(body);
+        if (!parsed.success)
+          throw new AppError(400, body.authorized !== true
+            ? "กรุณายืนยันว่ามีสิทธิ์ใช้ล็อกนี้"
+            : "กรุณาตรวจสอบตลาด รอบตลาด และล็อกที่เลือก");
+        return success(await AttendanceService.save(actor, parsed.data), 201);
+      }
+      if (method === "PATCH" && p.length === 2) {
+        const parsed = attendanceSchema.pick({ stallId: true, status: true, authorized: true }).partial().safeParse(body);
+        if (!parsed.success)
+          throw new AppError(400, body.authorized !== undefined && body.authorized !== true
+            ? "กรุณายืนยันว่ามีสิทธิ์ใช้ล็อกนี้"
+            : "กรุณาตรวจสอบตลาด รอบตลาด และล็อกที่เลือก");
+        try {
+          return success(await AttendanceService.update(actor, p[1], parsed.data));
+        } catch (error) {
+          // A canceled attendance without an assignment cannot infer a stall;
+          // keep this route's validation failures concise and fieldless too.
+          if (error instanceof z.ZodError)
+            throw new AppError(400, "กรุณาเลือกล็อกที่ต้องการบันทึก");
+          throw error;
+        }
+      }
     }
     if (p[0] === "templates" && method === "POST") {
       const data = z
@@ -166,6 +188,19 @@ async function handle(request: Request, context: Context) {
       );
     }
     if (p[0] === "reservations") {
+      if (method === "GET" && p.length === 2 && p[1] === "pickup")
+        throw new AppError(405, "ยืนยันรับสินค้าด้วยการสแกน QR เท่านั้น");
+      if (method === "GET" && p.length === 2 && p[1] === "status")
+        return success(await db.reservation.findMany({ where: { userId: actor.id }, orderBy: { createdAt: "desc" }, take: 1000,
+          select: { id: true, status: true, expiresAt: true } }));
+      if (method === "POST" && p.length === 2 && p[1] === "pickup") {
+        const data = z.object({ payload: z.string().min(1).max(1024), storeId: z.string().min(1).max(100).optional() }).strict().parse(body);
+        try { return success(await ReservationService.redeemPickupQr(actor, data.payload, data.storeId)); }
+        catch (error) {
+          if (error instanceof Error && error.message === "QR นี้ไม่ใช่รหัสรับสินค้าของอิ่มต่อ") throw new AppError(400, error.message);
+          throw error;
+        }
+      }
       if (method === "POST") {
         const data = z
           .object({
@@ -228,14 +263,10 @@ async function handle(request: Request, context: Context) {
       );
     }
     if (p[0] === "reports" && method === "POST") {
-      const data = z
-        .object({
-          productId: z.string(),
-          reason: z.string().trim().min(5).max(2000),
-        })
-        .parse(body);
+      const parsed = reportSchema.safeParse(body);
+      if (!parsed.success) throw new AppError(400, parsed.error.issues[0].message);
       await rateLimit(`report:${actor.id}`, 5, 3600);
-      return success(await db.report.create({ data }), 201);
+      return success(await db.report.create({ data: parsed.data }), 201);
     }
     if (p[0] === "admin") {
       const resourceKinds: Record<string, ResourceKind> = {
@@ -378,6 +409,9 @@ async function handle(request: Request, context: Context) {
             );
         }
       }
+      const deletable: Record<string, DeletionKind> = { users: "user", stores: "store", products: "product", reservations: "reservation", attendance: "attendance", reports: "report" };
+      if (method === "DELETE" && p.length === 3 && deletable[p[1]])
+        return success(await AdminDeletionService.remove(actor, deletable[p[1]], p[2], body));
       if (p[1] === "reports" && method === "PATCH")
         return success(await AdminService.report(actor, p[2], body));
       if (p[1] === "users" && method === "PATCH")
@@ -434,7 +468,7 @@ async function handle(request: Request, context: Context) {
         if (method === "POST")
           return success(await DemoService.generate(body, actor.id), 201);
         if (method === "DELETE" && p[2])
-          return success(await DemoService.cleanup(p[2], actor.id));
+          return success(await AdminDeletionService.remove(actor, "batch", p[2], body));
       }
     }
     throw new AppError(404, "ไม่พบ API นี้");

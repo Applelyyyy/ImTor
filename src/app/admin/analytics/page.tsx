@@ -134,14 +134,14 @@ export default async function Analytics() {
     <>
       <PageHeading
         title="ทุกมื้อมีความหมาย"
-        description="คำนวณจากรายการจองที่บันทึกจริง แยกกิจกรรมจริงออกจากข้อมูลจำลองอย่างชัดเจน"
+        description="คำนวณจากรายการจองที่บันทึกจริง แยกกิจกรรมจริงออกจากข้อมูลอย่างชัดเจน"
       />
       {totals.map(({ demo, values }) => (
         <section key={String(demo)} className="mb-8">
           <h2 className="mb-4 text-xl">
             {demo
-              ? "สถิติสาธิต · ไม่ใช่ยอดขายหรือผลกระทบจริง"
-              : "สถิติจริง · ไม่รวมข้อมูลสาธิต"}
+              ? "รายการที่เตรียมไว้"
+              : "รายการจากผู้ใช้"}
           </h2>
           <div className="stats">
             {values.map(([label, value]) => (
@@ -155,7 +155,7 @@ export default async function Analytics() {
       ))}
       <AdminTable
         title="ประวัติการจอง 35 วันที่ผ่านมา"
-        description="แบ่งวันตามเวลาสร้างการจองในกรุงเทพฯ และแสดงสถานะปัจจุบัน ไม่สร้างจำนวนผู้เข้าชมหรือกิจกรรมสมมติ"
+        description="แบ่งวันตามเวลาสร้างการจองในกรุงเทพฯ และแสดงสถานะปัจจุบัน ไม่สร้างจำนวนผู้เข้าชมหรือกิจกรรม"
         headers={[
           "วันสร้างรายการ",
           "ข้อมูล",
@@ -166,10 +166,10 @@ export default async function Analytics() {
           "หมดอายุ",
           "มูลค่ารับสำเร็จ",
         ]}
-        searchValues={days.map((r) => `${r.date} ${r.demo ? "สาธิต" : "จริง"}`)}
+        searchValues={days.map((r) => `${r.date} ${r.demo ? "เตรียมไว้" : "จริง"}`)}
         rows={days.map((r) => [
           r.date,
-          r.demo ? "สาธิต" : "จริง",
+          r.demo ? "เตรียมไว้" : "จริง",
           r.count,
           r.reserved,
           r.completed,
