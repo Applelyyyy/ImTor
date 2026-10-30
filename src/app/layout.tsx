@@ -94,11 +94,6 @@ export default async function RootLayout({
             <Link className="footer-brand" href="/" aria-label={`${siteName} หน้าแรก`}>
               <span>{siteName}</span>
             </Link>
-            <nav className="footer-links" aria-label="เมนูส่วนท้าย">
-              <Link href="/explore">สินค้าและร้านค้า</Link>
-              <Link href="/markets">ตลาด</Link>
-              <Link href="/become-vendor">เปิดร้าน</Link>
-            </nav>
             <small className="footer-copyright">© {new Date().getFullYear()} {siteName}</small>
           </div>
         </footer>

@@ -624,9 +624,6 @@ h3 {
   font-size: var(--text-body);
   font-weight: 700;
 }
-.footer-links { display: flex; flex-wrap: wrap; gap: 8px 24px; }
-.footer-links a { display: inline-flex; align-items: center; min-height: 44px; }
-.footer-links a:hover { color: var(--primary); text-decoration: underline; text-underline-offset: 4px; }
 .footer-copyright { margin-inline-start: auto; font-size: inherit; white-space: nowrap; }
 .page {
   padding-block: 42px 65px;
@@ -1445,7 +1442,6 @@ select {
     font-size: var(--text-caption);
   }
   .footer-inner { gap: 16px; min-height: 48px; padding-block: 8px; }
-  .footer-links { display: none; }
   .mobile-nav {
     display: flex;
     position: fixed;

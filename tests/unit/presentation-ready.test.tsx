@@ -20,7 +20,11 @@ describe('concise presentation-ready UI',()=>{
   expect(layout).not.toContain('brand-mark');
   expect(layout).not.toContain('brand-en');
   expect(layout).not.toContain('<Leaf aria-hidden');
-  expect(layout).toContain('aria-label="เมนูส่วนท้าย"');
+  const footer=layout.slice(layout.indexOf('<footer'),layout.indexOf('</footer>'));
+  expect(footer).not.toContain('<nav');
+  expect(footer).not.toContain('footer-links');
+  expect(footer).toContain('footer-brand');
+  expect(footer).toContain('footer-copyright');
   expect(layout.indexOf('</main>')).toBeLessThan(layout.indexOf('<footer'));
  });
  it('prioritizes offers before ordinary categories while preserving filters',async()=>{const html=renderToStaticMarkup(await CategoryFilters({categories:[{id:'drinks',name:'เครื่องดื่ม'}],q:'กาแฟ',market:'small'}));expect(html.indexOf('ลดราคา')).toBeLessThan(html.indexOf('เครื่องดื่ม'));expect(html.indexOf('อิ่มคุ้ม')).toBeLessThan(html.indexOf('เครื่องดื่ม'));expect(html).toContain('market=small');expect(html).toContain('q=');});
