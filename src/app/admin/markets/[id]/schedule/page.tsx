@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { PageHeading, date, time, statusLabel } from "@/components/marketplace";
-import { marketFields } from "@/components/admin";
+
 import { ApiForm, ApiButton } from "@/components/forms";
 import { Button } from "@/components/ui/button";
 import { MarketScheduleService } from "@/services/schedule";
@@ -31,16 +31,95 @@ export default async function Schedule({
   return (
     <>
       <PageHeading
-        title={`ตาราง ${m.name}`}
+        title={`ข้อมูลและวันเปิด · ${m.name}`}
         description="วันและเวลาคำนวณตามเขตเวลาของตลาด"
       >
         <Button asChild variant="outline">
           <Link href={`/admin/markets/${id}/layout`}>จัดการผังตลาด</Link>
         </Button>
+        <Button asChild variant="outline">
+          <Link href="/admin/markets">กลับรายการตลาด</Link>
+        </Button>
       </PageHeading>
       <div className="stack">
+        <details className="form-panel">
+          <summary className="font-semibold cursor-pointer">
+            แก้ไขข้อมูลตลาด
+          </summary>
+          <div className="mt-6">
+            <ApiForm
+              endpoint={`/api/admin/markets/${id}`}
+              method="PATCH"
+              advancedFrom={3}
+              fields={[
+                {
+                  name: "name",
+                  label: "ชื่อตลาด",
+                  required: true,
+                  value: m.name,
+                },
+                {
+                  name: "type",
+                  label: "ประเภท",
+                  type: "select",
+                  required: true,
+                  value: m.type,
+                  options: [
+                    { value: "SMALL", label: "ตลาดเล็ก" },
+                    { value: "LARGE", label: "ตลาดใหญ่" },
+                    ...(!["SMALL", "LARGE"].includes(m.type)
+                      ? [{ value: m.type, label: m.type }]
+                      : []),
+                  ],
+                },
+                { name: "address", label: "ที่อยู่", value: m.address },
+                {
+                  name: "description",
+                  label: "รายละเอียด",
+                  type: "textarea",
+                  value: m.description,
+                },
+                {
+                  name: "entrance",
+                  label: "ทางเข้า / จุดสังเกต",
+                  value: m.entrance,
+                },
+                {
+                  name: "timezone",
+                  label: "เขตเวลา",
+                  value: m.timezone,
+                  required: true,
+                },
+                {
+                  name: "latitude",
+                  label: "ละติจูด (เฉพาะพิกัดจริง)",
+                  type: "number",
+                  min: -90,
+                  max: 90,
+                  step: "any",
+                  value: m.latitude,
+                },
+                {
+                  name: "longitude",
+                  label: "ลองจิจูด (เฉพาะพิกัดจริง)",
+                  type: "number",
+                  min: -180,
+                  max: 180,
+                  step: "any",
+                  value: m.longitude,
+                },
+              ]}
+              submit="บันทึกข้อมูลตลาด"
+            />
+          </div>
+        </details>
         <div className="content-panel">
-          <h2>ปฏิทินตัวอย่างจากตารางที่บันทึก</h2>
+          <h2>รอบตลาดที่กำลังจะมาถึง</h2>
+          {!m.sessions.length && (
+            <p className="help-text">
+              ยังไม่มีรอบตลาด เพิ่มวันเปิดประจำหรือวันพิเศษด้านล่าง
+            </p>
+          )}
           {m.sessions.map((s) => (
             <div className="session-row" key={s.id}>
               <div>
@@ -56,7 +135,11 @@ export default async function Schedule({
                 body={{
                   status: s.status === "CANCELLED" ? "SCHEDULED" : "CANCELLED",
                 }}
-                confirmMessage="การยกเลิกรอบตลาดจะยกเลิกการเข้าร่วมและการจองที่เกี่ยวข้อง ยืนยัน?"
+                confirmMessage={
+                  s.status === "CANCELLED"
+                    ? "เปิดรอบตลาดนี้อีกครั้ง? การจองที่ยกเลิกไปแล้วจะไม่ถูกคืนอัตโนมัติ"
+                    : "การยกเลิกรอบตลาดจะยกเลิกการเข้าร่วมและการจองที่เกี่ยวข้อง ยืนยัน?"
+                }
               >
                 {s.status === "CANCELLED" ? "เปิดรอบอีกครั้ง" : "ยกเลิกรอบ"}
               </ApiButton>
@@ -100,6 +183,7 @@ export default async function Schedule({
           ))}
           <ApiForm
             endpoint={`/api/admin/markets/${id}/rules`}
+            advancedFrom={3}
             fields={[
               {
                 name: "weekday",
@@ -174,22 +258,6 @@ export default async function Schedule({
             submit="บันทึกวันพิเศษ"
           />
         </div>
-        <details className="form-panel">
-          <summary className="font-semibold cursor-pointer">
-            แก้ไขข้อมูลตลาดและพิกัด
-          </summary>
-          <div className="mt-6">
-            <ApiForm
-              endpoint={`/api/admin/markets/${id}`}
-              method="PATCH"
-              fields={marketFields.map((f) => ({
-                ...f,
-                value: m[f.name as keyof typeof m] as string | number | null,
-              }))}
-              submit="บันทึกข้อมูลตลาด"
-            />
-          </div>
-        </details>
       </div>
     </>
   );

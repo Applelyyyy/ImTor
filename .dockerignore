@@ -14,3 +14,5 @@ playwright-report
 src/generated
 docs
 README.md
+artifacts
+docs

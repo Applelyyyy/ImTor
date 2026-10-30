@@ -4,6 +4,7 @@ import { randomUUID, randomBytes } from "node:crypto";
 import { db } from "../src/lib/db";
 if (
   process.env.NODE_ENV === "production" ||
+  !new URL(process.env.DATABASE_URL!).pathname.endsWith("_test") ||
   !["localhost", "127.0.0.1"].includes(
     new URL(process.env.DATABASE_URL!).hostname,
   )
@@ -16,6 +17,7 @@ if (process.argv[2] === "cleanup") {
     categoryId: string;
     marketId: string;
     extraMarketId?: string;
+    nextSessionId?: string;
   };
   const ids = f.users.map((u) => u.id);
   const stores = await db.store.findMany({
@@ -39,6 +41,9 @@ if (process.argv[2] === "cleanup") {
     },
   });
   await db.upload.deleteMany({ where: { userId: { in: ids } } });
+  await db.rateLimit.deleteMany({ where: { OR: ids.flatMap((id: string) => [
+    { key: { startsWith: `${id}:` } }, { key: `report:${id}` },
+  ]) } });
   await db.user.deleteMany({ where: { id: { in: ids } } });
   await db.auditLog.deleteMany({ where: { actorId: { in: ids } } });
   await db.productCategory.delete({ where: { id: f.categoryId } });
@@ -96,16 +101,37 @@ if (process.argv[2] === "cleanup") {
       endsAt: new Date(Date.now() + 3600000),
     },
   });
+  await db.marketStall.create({
+    data: {
+      marketId: market.id,
+      zoneId: zone.id,
+      code: "A98",
+      x: 0.65,
+      y: 0.4,
+    },
+  });
+  const nextSession = await db.marketSession.create({
+    data: {
+      marketId: market.id,
+      date: new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Bangkok",
+      }).format(new Date(Date.now() + 86400000)),
+      startsAt: new Date(Date.now() + 86400000),
+      endsAt: new Date(Date.now() + 90000000),
+    },
+  });
   await mkdir("test-results", { recursive: true });
   await writeFile(
     path,
     JSON.stringify({
       tag,
+      databaseName: new URL(process.env.DATABASE_URL!).pathname.slice(1),
       users,
       categoryId: category.id,
       marketId: market.id,
       marketSlug: market.slug,
       sessionId: session.id,
+      nextSessionId: nextSession.id,
       stallId: stall.id,
     }),
     { mode: 0o600 },

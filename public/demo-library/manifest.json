@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "tool": "built-in image_gen",
+  "assets": [
+    {
+      "id": "basil-rice",
+      "kind": "products",
+      "file": "basil-rice.webp",
+      "sha256": "08030ff6a81a2da6a2096dffefce3fe07df3f2cbf43f5c27599caafcd02ccf02",
+      "sourceSha256": "163b0f8c7c6e2e9c99b3623d3151739313c198b778d173db793a4475383f1a6b",
+      "bytes": 129322,
+      "width": 800,
+      "height": 1000,
+      "prompt": "Photorealistic authentic Thai pad kra pao minced pork with jasmine rice and crispy fried egg, pale wood table, warm daylight, original fictional campus-market product photograph, vertical 4:5, no text/logo/watermark/people.",
+      "fictional": true
+    },
+    {
+      "id": "chicken-rice",
+      "kind": "products",
+      "file": "chicken-rice.webp",
+      "sha256": "386bbc5362e4924c964f9e531c6284051d7007d255a1ad00cb6a00ab6bc52178",
+      "sourceSha256": "b038b2d91106eb33b3be04285d24ce275253848b511e68ecf23a6062cc1a6798",
+      "bytes": 83512,
+      "width": 800,
+      "height": 1000,
+      "prompt": "Use case: product-mockup. Asset type: ImTor fictional Thai campus marketplace product photograph (chicken-rice). Primary subject: Thai poached sliced chicken on ginger rice with cucumber and ginger dipping sauce. Authentic Thai preparation, physically plausible ingredients and tableware, modest campus-market portion, appetizing natural textures and warm colors, simple pale wood tabletop, soft daylight, clean uncluttered background, shallow depth of field. Vertical4:5 framing with subject fully visible and comfortable margins. No people, hands, text, labels, logos, watermark, brand packaging. Original realistic illustrative photograph, not real seller imagery.",
+      "fictional": true
+    },
+    {
+      "id": "fried-rice",
+      "kind": "products",
+      "file": "fried-rice.webp",
+      "sha256": "cee2f7e023a71509f6f6279b4ed277f10afb4702acb31aef12095963cca60e0f",
+      "sourceSha256": "ce1f1c760ab40096d7d28b3fc9c82a5f9ddc47e418039219b7900c4e3087e4c7",
+      "bytes": 107026,
+      "width": 800,
+      "height": 1000,
+      "prompt": "Use case: product-mockup. Asset type: ImTor fictional Thai campus marketplace product photograph (fried-rice). Primary subject: Thai pork fried rice with egg, spring onion, cucumber and lime wedge. Authentic Thai preparation, physically plausible ingredients and tableware, modest campus-market portion, appetizing natural textures and warm colors, simple pale wood tabletop, soft daylight, clean uncluttered background, shallow depth of field. Vertical4:5 framing with subject fully visible and comfortable margins. No people, hands, text, labels, logos, watermark, brand packaging. Original realistic illustrative photograph, not real seller imagery.",
+      "fictional": true
+    },
+    {
+      "id": "tom-yum-noodles",
+      "kind": "products",
+      "file": "tom-yum-noodles.webp",
+      "sha256": "5aa9b18d4eb8669692c56d4c7f2dafa2d5cd6ce02d68a99a17a04bf02675d405",
+      "sourceSha256": "0d8d9b0b32bcd2e168789f41de8f0dc2e5dbf7dff9cb95c4819fee6002ca18e7",
+      "bytes": 114208,
+      "width": 800,
+      "height": 1000,
+      "prompt": "Use case: product-mockup. Asset type: ImTor fictional Thai campus marketplace product photograph (tom-yum-noodles). Primary subject: Thai tom yum rice noodle soup with pork slices, bean sprouts and crushed peanuts. Authentic Thai preparation, physically plausible ingredients and tableware, modest campus-market portion, appetizing natural textures and warm colors, simple pale wood tabletop, soft daylight, clean uncluttered background, shallow depth of field. Vertical4:5 framing with subject fully visible and comfortable margins. No people, hands, text, labels, logos, watermark, brand packaging. Original realistic illustrative photograph, not real seller imagery.",
+      "fictional": true
+    }
+  ]
+}

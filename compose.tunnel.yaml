@@ -1,0 +1,30 @@
+# Existing Docker-based cloudflared. Compose >=2.24.4; no new connector/proxy.
+services:
+  db:
+    ports: !reset []
+    networks: !override [internal]
+  migrate:
+    env_file: !override ["${IMTOR_ENV_FILE:-.env.production}"]
+    networks: !override [internal]
+  app:
+    env_file: !override ["${IMTOR_ENV_FILE:-.env.production}"]
+    ports: !reset []
+    expose: !override ["3100"]
+    environment:
+      PORT: "3100"
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3100/api/health/ready',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    networks: !override
+      internal: {}
+      edge:
+        aliases: [imtor-app]
+  caddy:
+    profiles: !override [disabled]
+    ports: !reset []
+networks:
+  edge:
+    external: true
+    name: ${IMTOR_EDGE_NETWORK:-imtor-edge}
+  internal:
+    internal: true
+    name: ${IMTOR_INTERNAL_NETWORK:-imtor-internal}

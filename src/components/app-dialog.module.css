@@ -1,0 +1,15 @@
+.surface[data-app-dialog] { width:min(44rem,calc(100% - 2rem)); max-width:44rem; max-height:90dvh; display:flex; flex-direction:column; gap:0; overflow:hidden; padding:0; }
+.header { flex:none; padding:1.25rem 3rem 1.25rem 1.25rem; border-bottom:1px solid var(--border); text-align:left; }
+.content { min-height:0; min-width:0; overflow:auto; overscroll-behavior:contain; padding:1.25rem; scrollbar-gutter:stable; }
+.content[hidden] { display:none; }
+.content :global(form) { min-width:0; }
+.content :global(.form-actions) { position:sticky; bottom:-1.25rem; margin:1.25rem -1.25rem -1.25rem; padding:1rem 1.25rem max(1rem,env(safe-area-inset-bottom)); background:var(--background); border-top:1px solid var(--border); }
+.discard { display:flex; justify-content:flex-end; gap:.75rem; padding:1.25rem; flex-wrap:wrap; }
+/* Reset Tailwind individual-translate variables too: the CSS optimizer folds translate:none into transform. */
+@media(max-width:639px) {
+ .surface[data-app-dialog] { top:auto;bottom:0;left:0;--tw-translate-x:0px;--tw-translate-y:0px;transform:none;translate:none; width:100%;max-width:100%;max-height:94dvh;border-radius:1.25rem 1.25rem 0 0; }
+ .header { padding:1rem 3rem 1rem 1rem; }
+ .content { padding:1rem; }
+ .content :global(.form-actions) { bottom:-1rem;margin:1rem -1rem -1rem;padding:1rem 1rem max(1rem,env(safe-area-inset-bottom)); }
+ .content :global(.form-actions > *) { flex:1; }
+}

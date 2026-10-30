@@ -1,0 +1,9 @@
+[
+  {
+    "AllowedOrigins": ["https://imtor.applely.dev", "http://localhost:3000"],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]

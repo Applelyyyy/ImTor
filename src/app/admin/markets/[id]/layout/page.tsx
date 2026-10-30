@@ -1,9 +1,10 @@
 import { requireAdmin } from "@/components/auth-guard";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { PageHeading } from "@/components/marketplace";
-import { ApiForm } from "@/components/forms";
 import { LayoutEditor } from "@/components/layout-editor";
+import { Button } from "@/components/ui/button";
 export default async function LayoutPage({
   params,
 }: {
@@ -11,63 +12,34 @@ export default async function LayoutPage({
 }) {
   await requireAdmin();
   const { id } = await params;
-  const m = await db.marketVenue.findUnique({
+  const market = await db.marketVenue.findUnique({
     where: { id },
     include: {
       zones: { orderBy: { name: "asc" } },
       stalls: { orderBy: { code: "asc" } },
     },
   });
-  if (!m) notFound();
+  if (!market) notFound();
   return (
-    <>
+    <div className="stack">
       <PageHeading
-        title={`ผังและล็อก ${m.name}`}
-        description="อัปโหลดผัง เพิ่มโซน แล้ววางตำแหน่งล็อก ไม่ใช้แผนที่แบบเสียเงิน"
+        title={`ผังตลาด · ${market.name}`}
+        description="วางล็อกบนผังด้วยการลากหรือปุ่มลูกศร แล้วบันทึกเมื่อพร้อม"
+      >
+        <Button asChild variant="outline">
+          <Link href={`/admin/markets/${id}/schedule`}>ข้อมูลและวันเปิด</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/admin/markets">กลับรายการตลาด</Link>
+        </Button>
+      </PageHeading>
+      <LayoutEditor
+        key={id}
+        marketId={id}
+        image={market.layoutImage}
+        zones={market.zones}
+        stalls={market.stalls}
       />
-      <div className="stack">
-        <div className="two-col">
-          <div className="form-panel">
-            <h2>ภาพผังตลาด</h2>
-            <ApiForm
-              endpoint={`/api/admin/markets/${id}`}
-              method="PATCH"
-              fields={[
-                {
-                  name: "layoutImage",
-                  label: "อัปโหลดภาพผัง",
-                  type: "upload",
-                  value: m.layoutImage,
-                },
-              ]}
-              submit="บันทึกภาพผัง"
-            />
-          </div>
-          <div className="form-panel">
-            <h2>เพิ่มโซน</h2>
-            <p className="help-text mb-4">
-              โซนปัจจุบัน: {m.zones.map((z) => z.name).join(", ") || "ยังไม่มี"}
-            </p>
-            <ApiForm
-              endpoint={`/api/admin/markets/${id}/zones`}
-              fields={[
-                {
-                  name: "name",
-                  label: "ชื่อโซน เช่น A หรือ B",
-                  required: true,
-                },
-              ]}
-              submit="เพิ่มโซน"
-            />
-          </div>
-        </div>
-        <LayoutEditor
-          marketId={id}
-          image={m.layoutImage}
-          zones={m.zones}
-          stalls={m.stalls}
-        />
-      </div>
-    </>
+    </div>
   );
 }

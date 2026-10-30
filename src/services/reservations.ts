@@ -1,19 +1,31 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { db } from "@/lib/db";
 import { invariant } from "@/lib/errors";
 import { assertActive, assertOwner, type Actor } from "@/lib/permissions";
 import { transaction } from "./transactions";
 import { InventoryService } from "./inventory";
 import { PricingService } from "./pricing";
+import { z } from "zod";
+import { Prisma } from "@/generated/prisma/client";
 import { reservationSchema } from "@/lib/validation";
 export class ReservationService {
-  static async create(actor: Actor, productId: string, quantity: number) {
+  static async create(actor: Actor, productId: string, quantity: number, idempotencyKey?: string) {
     assertActive(actor);
     reservationSchema.parse({ productId, quantity });
-    return transaction(async (tx) => {
+    if (idempotencyKey !== undefined) z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/).parse(idempotencyKey);
+    const movementId = idempotencyKey === undefined ? undefined : `reservation-request:${createHash("sha256").update(JSON.stringify([actor.id, idempotencyKey])).digest("hex")}`;
+    const work = () => transaction(async (tx) => {
       const now = new Date();
       await tx.$queryRaw`SELECT id FROM "Product" WHERE id=${productId} FOR UPDATE`;
       await InventoryService.expireForProduct(tx, productId, now);
+      if (movementId) {
+        const previous = await tx.inventoryMovement.findUnique({where:{id:movementId},include:{reservation:true}});
+        if (previous) {
+          invariant(previous.productId === productId && previous.reservation?.userId === actor.id && previous.reservation.quantity === quantity,
+            "คำขอจองเดิมมีสินค้าหรือจำนวนต่างกัน กรุณาตรวจสอบการจองของคุณ", 409);
+          return previous.reservation;
+        }
+      }
       const p = await tx.product.findUniqueOrThrow({
         where: { id: productId },
         include: { store: true, discounts: true, session: true },
@@ -94,6 +106,7 @@ export class ReservationService {
       });
       await tx.inventoryMovement.create({
         data: {
+          ...(movementId ? { id: movementId } : {}),
           productId,
           reservationId: reservation.id,
           delta: -quantity,
@@ -102,6 +115,13 @@ export class ReservationService {
       });
       return reservation;
     });
+    try { return await work(); }
+    catch (error) {
+      // Different product locks can race the same request key. Read its winning
+      // binding after rollback rather than applying a second decrement.
+      if (movementId && error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return work();
+      throw error;
+    }
   }
   static async transition(
     actor: Actor,

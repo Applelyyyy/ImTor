@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { Mali, Kodchasan } from "next/font/google";
 import Link from "next/link";
 import {
   Leaf,
-  Search,
   MapPinned,
   ShoppingBag,
   UserRound,
@@ -14,12 +13,20 @@ import { publicBranding } from "@/lib/queries";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { currentUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
+import { GlobalSearch } from "@/components/global-search";
 import "./globals.css";
-const thai = localFont({
-  src: "../../public/fonts/NotoSansThai.ttf",
-  variable: "--font-thai",
+const mali = Mali({
+  subsets: ["thai", "latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-mali",
   display: "swap",
-  weight: "100 900",
+});
+const kodchasan = Kodchasan({
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-kodchasan",
+  display: "swap",
 });
 export const metadata: Metadata = {
   title: {
@@ -38,7 +45,7 @@ export default async function RootLayout({
   const [user, branding] = await Promise.all([currentUser(), publicBranding()]);
   const siteName = branding.siteName || "อิ่มต่อ";
   return (
-    <html lang="th" className={thai.variable}>
+    <html lang="th" className={`${mali.variable} ${kodchasan.variable}`}>
       <body>
         <a className="skip-link" href="#main">
           ข้ามไปเนื้อหา
@@ -50,20 +57,21 @@ export default async function RootLayout({
                 <Leaf strokeWidth={2.3} />
               </span>
               <span>
-                <span className="brand-title">{siteName}</span>
+                <span className="brand-title font-display">{siteName}</span>
                 <span className="brand-en">ImTor</span>
               </span>
             </Link>
             <nav className="desktop-nav" aria-label="เมนูหลัก">
-              <Link href="/">ค้นพบของอร่อย</Link>
+              <Link href="/">หน้าแรก</Link>
               <Link href="/markets">ตลาดวันนี้</Link>
-              <Link href="/explore">สำรวจร้านค้า</Link>
+              <Link href="/explore">สินค้าและร้านค้า</Link>
             </nav>
             <div className="header-actions">
+              <GlobalSearch />
               <Button asChild variant="outline">
                 <Link href={user ? "/merchant" : "/become-vendor"}>
                   <Store data-icon="inline-start" />
-                  เปิดร้านกับเรา
+                  เปิดร้าน
                 </Link>
               </Button>
               <Link
@@ -84,18 +92,18 @@ export default async function RootLayout({
             </Alert>
           </div>
         )}
+        <Toaster position="top-right" closeButton visibleToasts={2} toastOptions={{duration:4000}} offset={{top:80,right:16}} mobileOffset={{top:72,left:16,right:16}} />
         <main id="main">{children}</main>
         <footer className="site-footer shell">
           <div>
             <Link className="brand" href="/">
               <Leaf />
-              <span className="brand-title">{siteName}</span>
+              <span className="brand-title font-display">{siteName}</span>
             </Link>
             <p>อิ่มด้วยกัน ไม่เหลือทิ้ง</p>
           </div>
-          <p>ร้านดี ๆ ในแคมปัส ใกล้กว่าที่คิด</p>
           <Link href="/become-vendor">
-            เป็นส่วนหนึ่งของอิ่มต่อ <ArrowUpRight size={16} />
+            เปิดร้าน <ArrowUpRight size={16} />
           </Link>
         </footer>
         <nav className="mobile-nav" aria-label="เมนูบนมือถือ">
@@ -107,10 +115,7 @@ export default async function RootLayout({
             <MapPinned />
             ตลาดวันนี้
           </Link>
-          <Link href="/explore">
-            <Search />
-            ค้นหา
-          </Link>
+          <GlobalSearch mobile />
           <Link href="/reservations">
             <ShoppingBag />
             การจอง

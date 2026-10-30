@@ -1,13 +1,14 @@
 import { requireAdmin } from "@/components/auth-guard";
 import { db } from "@/lib/db";
 import { AdminTable } from "@/components/admin";
-import { ApiButton } from "@/components/forms";
+import { ApiButton, ApiForm } from "@/components/forms";
 import { money } from "@/lib/utils";
 import { statusLabel, date, time } from "@/components/marketplace";
 export default async function Reservations() {
   await requireAdmin();
+  const total = await db.reservation.count();
   const rows = await db.reservation.findMany({
-    take: 150,
+    take: 1000,
     orderBy: { createdAt: "desc" },
     include: { user: true, product: { include: { store: true } } },
   });
@@ -22,16 +23,25 @@ export default async function Reservations() {
           "จำนวน / รวม",
           "สถานะ",
           "หมดเวลารับ",
+          "ยืนยันการรับ",
         ]}
-        rows={rows.map((r) => [
+        total={total}
+      searchValues={rows.map((r) => `${r.id} ${r.product.name} ${r.product.store.name} ${r.user.name ?? ""} ${r.user.email ?? ""} ${r.status} ${statusLabel[r.status] || r.status} ${r.demoBatchId ? "สาธิต" : "จริง"}`)}
+      rows={rows.map((r) => [
           <div key="product">
             {r.product.name}
+            {r.demoBatchId && <small className="block">การจองสาธิต · ไม่มีการซื้อขายจริง</small>}
             <small className="block">{r.product.store.name}</small>
           </div>,
           r.user.name || "ไม่ระบุ",
           `${r.quantity} / ${money(r.quantity * r.unitPrice)}`,
           statusLabel[r.status] || r.status,
           `${date(r.expiresAt.toISOString())} ${time(r.expiresAt.toISOString())}`,
+          r.status === "RESERVED" ? <details key="pickup"><summary className="cursor-pointer">ยืนยันด้วยรหัสรับสินค้า</summary>
+            <ApiForm endpoint={`/api/reservations/${r.id}`} method="PATCH" body={{ status: "COMPLETED" }}
+              fields={[{ name: "pickupCode", label: "รหัสที่ลูกค้าแสดง", required: true }]}
+              submit={r.demoBatchId ? "ยืนยันรับสาธิต" : "ยืนยันรับสินค้า"} />
+            </details> : "—",
         ])}
       />
       <div className="mt-6">

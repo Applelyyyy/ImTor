@@ -18,6 +18,8 @@ export type ProductView = {
   pickupStart: string | null;
   pickupEnd: string | null;
   demo: boolean;
+  demoInteractive: boolean;
+  sessionId: string | null;
   price: PriceView;
   store: { id: string; slug: string; name: string; verified: boolean };
   category: { id: string; name: string };
@@ -65,5 +67,34 @@ export type StallView = {
     name: string;
     status: string;
     verified: boolean;
+    demo: boolean;
+    productNames: string[];
+    products: { id: string; name: string; imageUrl: string; price: PriceView }[];
   } | null;
+};
+
+/** Only the admin control panel receives this private, persisted demo state. */
+export type RealisticDemoConfig = {
+  seed: string;
+  idempotencyKey: string;
+  visitorReservations: boolean;
+  useImages: boolean;
+  markets: number;
+  zones: number;
+  stalls: number;
+  stores: number;
+  products: number;
+  customers: number;
+  reservations: number;
+  historyDays: number;
+  futureDays: number;
+};
+export type RealisticDemoState = {
+  batchId: string;
+  config: RealisticDemoConfig;
+  asOf: string;
+  stage: "MEDIA" | "DATA" | "VALIDATE" | "READY" | "ERROR" | "CLEANING" | "REMOVED";
+  message: string;
+  assets: Record<string, { key: string; url: string; sha256: string; bytes: number }>;
+  error?: string;
 };

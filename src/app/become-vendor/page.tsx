@@ -6,10 +6,7 @@ export default async function BecomeVendor() {
   const user = await currentUser();
   return (
     <div className="shell page">
-      <PageHeading
-        title="ร้านของคุณ มื้อดี ๆ ของชุมชน"
-        description="สร้างร้าน เลือกตลาด เพิ่มสินค้า แล้วให้คนในแคมปัสค้นพบคุณ"
-      />
+      <PageHeading title="เปิดร้านกับอิ่มต่อ" />
       <div className="two-col">
         <section className="form-panel">
           <h2>เริ่มต้นเปิดร้าน</h2>
@@ -51,14 +48,11 @@ export default async function BecomeVendor() {
           )}
         </section>
         <section className="content-panel stack">
-          <h2>เริ่มง่าย ๆ ในไม่กี่ขั้นตอน</h2>
-          <p>สร้างร้านด้วยบัญชีเดียวกับที่ใช้ซื้อของ</p>
+          <h2>ขั้นตอนเปิดร้าน</h2>
+          <p>สร้างร้านด้วยบัญชี Google</p>
           <p>เลือกตลาดและล็อกที่คุณได้รับอนุญาตให้ขาย</p>
           <p>ถ่ายภาพ ตั้งราคา แล้วเผยแพร่สินค้า</p>
-          <p>
-            ขายเต็มราคาได้ตามปกติ หรือเพิ่มช่วงลดราคาเมื่อพร้อม
-            ไม่จำเป็นต้องเป็นอาหารเหลือ
-          </p>
+          <p>ขายเต็มราคาได้ หรือตั้งส่วนลดเมื่อต้องการ</p>
         </section>
       </div>
     </div>

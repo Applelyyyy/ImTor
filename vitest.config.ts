@@ -6,7 +6,7 @@ if (process.env.TEST_DATABASE_URL)
 export default defineConfig({
   resolve: { alias: { "@": path.resolve(import.meta.dirname, "src") } },
   test: {
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.{ts,tsx}"],
     fileParallelism: false,
     testTimeout: 30000,
     hookTimeout: 30000,

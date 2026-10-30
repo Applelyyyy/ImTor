@@ -19,7 +19,7 @@ export default async function Reservations() {
     <div className="shell page">
       <PageHeading
         title="มื้ออร่อยที่จองไว้"
-        description="แสดงรหัสนี้ให้ร้านค้าเมื่อไปรับสินค้า ชำระเงินที่ร้านได้เลย"
+        description="รายการจริงใช้รหัสรับสินค้าที่ร้าน ส่วนรายการสาธิตติดป้ายชัดเจนและไม่มีการซื้อขายจริง"
       />
       {!rows.length ? (
         <EmptyState
@@ -36,6 +36,7 @@ export default async function Reservations() {
                 >
                   {statusLabel[r.status] || r.status}
                 </Badge>
+                {r.demoBatchId && <Badge variant="outline" className="ml-2">การจองสาธิต · ไม่ใช่การซื้อขายจริง</Badge>}
                 <h2 className="mt-3">
                   <Link href={`/product/${r.productId}`}>{r.product.name}</Link>
                 </h2>
@@ -43,8 +44,9 @@ export default async function Reservations() {
                   {r.product.store.name} · {r.quantity} ชิ้น · รวม{" "}
                   {money(r.quantity * r.unitPrice)}
                 </p>
+                {r.demoBatchId && <p className="help-text">ไม่ต้องเดินทางหรือชำระเงิน รหัสนี้ใช้ทดลองขั้นตอนรับสินค้าเท่านั้น</p>}
                 <p>
-                  รับก่อน {date(r.expiresAt.toISOString())}{" "}
+                  {r.demoBatchId ? "หมดเวลาทดลองรับ" : "รับก่อน"} {date(r.expiresAt.toISOString())}{" "}
                   {time(r.expiresAt.toISOString())} น.
                 </p>
                 {r.status === "RESERVED" && (

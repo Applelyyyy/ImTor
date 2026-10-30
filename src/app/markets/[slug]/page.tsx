@@ -28,7 +28,7 @@ export default async function MarketDetail({
       </div>
       <PageHeading title={m.name} description={m.description}>
         <Button asChild>
-          <Link href={`/markets/${slug}/map`}>ดูแผนผังตลาด</Link>
+          <Link href={`/markets/${slug}/map`}>ดูแผนผัง</Link>
         </Button>
       </PageHeading>
       {m.demo && (
@@ -36,7 +36,7 @@ export default async function MarketDetail({
       )}
       <div className="two-col mb-10">
         <div className="content-panel">
-          <h2>แวะมาหากัน</h2>
+          <h2>ที่ตั้งตลาด</h2>
           <p>{m.address}</p>
           <p>{m.entrance}</p>
           {m.latitude !== null && m.longitude !== null && (
@@ -76,7 +76,7 @@ export default async function MarketDetail({
       </div>
       <div className="section-heading">
         <div>
-          <h2>ของอร่อยที่ตลาดนี้</h2>
+          <h2>สินค้าที่ตลาดนี้</h2>
           <p>เฉพาะสินค้าของร้านที่ลงทะเบียนขายในช่วงนี้</p>
         </div>
       </div>

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://developers.cloudflare.com/workers/wrangler/config-schema.json",
+  "name": "imtor-media",
+  "main": "worker.mjs",
+  "account_id": "321ebeff48e3571359ce7cc64288e56b",
+  "compatibility_date": "2026-10-30",
+  "workers_dev": false,
+  "routes": [{ "pattern": "media.imtor.applely.dev", "custom_domain": true }],
+  "r2_buckets": [{ "binding": "IMTOR_IMAGES", "bucket_name": "imtor-images" }]
+}

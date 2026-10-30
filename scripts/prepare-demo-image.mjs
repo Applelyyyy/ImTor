@@ -1,0 +1,17 @@
+import sharp from 'sharp';
+import {readFileSync,writeFileSync,copyFileSync,existsSync,mkdirSync} from 'node:fs';
+import {createHash}from'node:crypto';
+const entry=JSON.parse(readFileSync(process.argv[2],'utf8'));
+if(!/^[a-z][a-z0-9-]{1,60}$/.test(entry.id)||!['products','stores'].includes(entry.kind))throw Error('Invalid asset identity');
+const source=readFileSync(entry.source);const input=sharp(source,{limitInputPixels:24_000_000,failOn:'error'});const meta=await input.metadata();
+if(!meta.width||!meta.height||meta.width<600||meta.height<600||!['png','jpeg','webp'].includes(meta.format))throw Error('Invalid generated source');
+mkdirSync('public/demo-library',{recursive:true});mkdirSync('artifacts/realistic-demo/originals',{recursive:true});
+const bytes=await input.rotate().resize(entry.kind==='stores'?{width:1280,height:720,fit:'cover'}:{width:800,height:1000,fit:'cover'}).webp({quality:83}).toBuffer();
+const output=await sharp(bytes).metadata();if(bytes.length>1024*1024)throw Error('Derivative too large');
+const sha256=createHash('sha256').update(bytes).digest('hex');
+copyFileSync(entry.source,`artifacts/realistic-demo/originals/${entry.id}.${meta.format==='jpeg'?'jpg':meta.format}`);
+writeFileSync(`public/demo-library/${entry.id}.webp`,bytes);
+const path='public/demo-library/manifest.json';const manifest=existsSync(path)?JSON.parse(readFileSync(path,'utf8')):{version:1,tool:'built-in image_gen',assets:[]};
+const item={id:entry.id,kind:entry.kind,file:`${entry.id}.webp`,sha256,sourceSha256:createHash('sha256').update(source).digest('hex'),bytes:bytes.length,width:output.width,height:output.height,prompt:entry.prompt,fictional:true};
+manifest.assets=manifest.assets.filter(a=>a.id!==entry.id);manifest.assets.push(item);manifest.assets.sort((a,b)=>a.id.localeCompare(b.id));writeFileSync(path,JSON.stringify(manifest,null,2)+'\n');
+console.log(JSON.stringify({id:entry.id,width:output.width,height:output.height,bytes:bytes.length,sha256}));

@@ -75,6 +75,10 @@ export class AttendanceService {
           sellingUntil: data.sellingUntil,
         },
       });
+      const released = await tx.stallAssignment.findUnique({
+        where: { attendanceId: attendance.id },
+        include: { stall: { include: { zone: true } } },
+      });
       await tx.stallAssignment.deleteMany({
         where: { attendanceId: attendance.id },
       });
@@ -102,7 +106,24 @@ export class AttendanceService {
           actorId: actor.id,
           action: "ATTENDANCE_SAVED",
           target: attendance.id,
-          changes: { stallId: stall.id, status: data.status, verified },
+          changes: {
+            stallId: stall.id,
+            status: data.status,
+            verified,
+            releasedAssignment: released
+              ? {
+                  id: released.id,
+                  attendanceId: attendance.id,
+                  storeId: store.id,
+                  stallId: released.stallId,
+                  stallCode: released.stall.code,
+                  zoneName: released.stall.zone.name,
+                  startsAt: released.startsAt.toISOString(),
+                  endsAt: released.endsAt.toISOString(),
+                  verified: released.verified,
+                }
+              : null,
+          },
         },
       });
       return attendance;

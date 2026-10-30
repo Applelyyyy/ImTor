@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { product, publicFeatures } from "@/lib/queries";
 import { money } from "@/lib/utils";
 import { date, time } from "@/components/marketplace";
+import { ContextualForm } from "@/components/contextual-form";
 import { ApiForm } from "@/components/forms";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -74,7 +75,7 @@ export default async function ProductPage({
             </div>
             <div>
               <dt>จำนวนคงเหลือ</dt>
-              <dd>{p.stock === null ? "สอบถามร้านค้า" : `${p.stock} ชิ้น`}</dd>
+              <dd>{p.stock === null ? "ไม่ติดตามจำนวน" : p.stock === 0 ? "สินค้าหมด" : `${p.stock.toLocaleString("th-TH")} ชิ้น`}</dd>
             </div>
             {p.pickupStart && p.pickupEnd && (
               <div>
@@ -98,7 +99,7 @@ export default async function ProductPage({
               </div>
             )}
           </dl>
-          {p.demo ? (
+          {p.demo && !p.demoInteractive ? (
             <Alert>
               <AlertTitle>สินค้าตัวอย่างสำหรับสาธิต</AlertTitle>
               <AlertDescription>
@@ -109,15 +110,24 @@ export default async function ProductPage({
             <Alert>
               <AlertTitle>พักรับการจองออนไลน์ชั่วคราว</AlertTitle>
               <AlertDescription>
-                ยังแวะซื้อที่ร้านได้ กรุณาตรวจสอบเวลาเปิดก่อนเดินทาง
+                {p.demo ? "รายการสาธิตไม่มีการซื้อขายหรือรับสินค้าจริง" : "ยังแวะซื้อที่ร้านได้ กรุณาตรวจสอบเวลาเปิดก่อนเดินทาง"}
               </AlertDescription>
             </Alert>
-          ) : p.reservable && p.stock !== 0 ? (
+          ) : p.reservable && p.stock !== null && p.stock > 0 ? (
             <div className="form-panel">
-              <ApiForm
+              <ContextualForm
+                title="ยืนยันการจอง"
+                description={`${p.name} · ${money(p.price.current)} ต่อชิ้น · ราคายืนยันเมื่อจอง`}
+                label={p.demo ? "ทดลองจองสินค้าสาธิต" : "จองไว้ แล้วไปรับที่ร้าน"}
                 endpoint="/api/reservations"
                 body={{ productId: p.id }}
                 fields={[
+                  ...(p.demo ? [{
+                    name: "demoAcknowledged",
+                    label: "ฉันเข้าใจว่านี่คือการจองสาธิต ไม่มีการซื้อขายหรือรับสินค้าจริง",
+                    type: "checkbox" as const,
+                    required: true,
+                  }] : []),
                   {
                     name: "quantity",
                     label: "จำนวนที่ต้องการจอง",
@@ -128,20 +138,20 @@ export default async function ProductPage({
                     required: true,
                   },
                 ]}
-                submit="จองไว้ แล้วไปรับที่ร้าน"
+                submit={p.demo ? "ทดลองจองสินค้าสาธิต" : "จองไว้ แล้วไปรับที่ร้าน"}
                 redirect="/reservations"
               />
               <p className="help-text mt-4">
-                ยังไม่ต้องชำระออนไลน์ ยืนยันราคาและเวลารับกับร้านเมื่อจอง
+                {p.demo ? "ข้อมูลสมมติเท่านั้น ไม่มีการซื้อขายหรือรับสินค้าจริง บัญชีของคุณยังเป็นบัญชีจริงตามเดิม" : "ยังไม่ต้องชำระออนไลน์ ยืนยันราคาและเวลารับกับร้านเมื่อจอง"}
               </p>
             </div>
           ) : (
             <Alert>
               <AlertTitle>
-                {p.stock === 0 ? "สินค้าหมดแล้ว" : "แวะซื้อที่ร้านได้เลย"}
+                {p.stock === 0 ? "สินค้าหมดแล้ว" : p.demo ? "สินค้าสาธิตนี้ยังไม่เปิดให้ทดลองจอง" : "แวะซื้อที่ร้านได้เลย"}
               </AlertTitle>
               <AlertDescription>
-                {p.stock === 0
+                {p.demo ? "ไม่มีการซื้อขายหรือรับสินค้าจริง" : p.stock === 0
                   ? "ลองดูสินค้าอื่นจากร้านนี้"
                   : "สินค้านี้ไม่เปิดรับจองออนไลน์ ตรวจสอบเวลาเปิดก่อนเดินทาง"}
               </AlertDescription>
@@ -152,7 +162,7 @@ export default async function ProductPage({
             <p>{p.location}</p>
             {p.marketSlug && (
               <Link
-                href={`/markets/${p.marketSlug}/map${p.stallCode ? "?stall=" + encodeURIComponent(p.stallCode) : ""}`}
+                href={`/markets/${p.marketSlug}/map?${new URLSearchParams({ ...(p.sessionId ? { session: p.sessionId } : {}), ...(p.stallCode ? { stall: p.stallCode } : {}) })}`}
               >
                 ดูตำแหน่งในแผนผังตลาด →
               </Link>

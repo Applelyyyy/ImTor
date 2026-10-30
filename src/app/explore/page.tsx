@@ -5,7 +5,7 @@ import {
   CategoryFilters,
   ProductGrid,
 } from "@/components/marketplace";
-export const metadata = { title: "ค้นหาของอร่อย" };
+export const metadata = { title: "สินค้าและร้านค้า" };
 export default async function Explore({
   searchParams,
 }: {
@@ -19,10 +19,7 @@ export default async function Explore({
   ]);
   return (
     <div className="shell page">
-      <PageHeading
-        title="ค้นพบมื้อที่ใช่"
-        description="อาหาร เครื่องดื่ม และของน่าซื้อจากร้านในชุมชน"
-      />
+      <PageHeading title="สินค้าและร้านค้า" />
       <SearchForm q={p.q} />
       <form className="inline-filter">
         <input type="hidden" name="q" value={p.q || ""} />
@@ -44,7 +41,7 @@ export default async function Explore({
         q={p.q}
         market={p.market}
       />
-      <p className="result-count">
+      <p className="result-count" role="status">
         {p.q ? `ผลการค้นหา “${p.q}” · ` : ""}
         {items.length} รายการ
       </p>

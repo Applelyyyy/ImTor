@@ -1,14 +1,19 @@
+import { AdminTableControls } from "@/components/admin-table-controls";
 import { PageHeading, EmptyState } from "@/components/marketplace";
 export function AdminTable({
   title,
   description,
   headers,
   rows,
+  searchValues,
+  total = rows.length,
 }: {
   title: string;
   description?: string;
   headers: string[];
   rows: React.ReactNode[][];
+  searchValues?: string[];
+  total?: number;
 }) {
   return (
     <>
@@ -19,26 +24,8 @@ export function AdminTable({
           description="รายการที่เพิ่มเข้าระบบจะแสดงที่นี่"
         />
       ) : (
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                {headers.map((h) => (
-                  <th key={h}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, i) => (
-                <tr key={i}>
-                  {row.map((cell, j) => (
-                    <td key={j}>{cell}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AdminTableControls headers={headers} rows={rows} total={total}
+          searchValues={searchValues ?? rows.map((row) => row.filter((cell) => typeof cell === "string" || typeof cell === "number").join(" "))} />
       )}
     </>
   );

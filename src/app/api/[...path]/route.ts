@@ -10,6 +10,11 @@ import { ReservationService } from "@/services/reservations";
 import { UploadService } from "@/services/uploads";
 import { AdminService } from "@/services/admin";
 import { DemoService } from "@/services/demo";
+import { InventoryService } from "@/services/inventory";
+import {
+  ResourceLifecycleService,
+  type ResourceKind,
+} from "@/services/resource-lifecycle";
 import { MarketScheduleService } from "@/services/schedule";
 import { PricingService } from "@/services/pricing";
 import { profileSchema } from "@/lib/validation";
@@ -29,11 +34,15 @@ async function handle(request: Request, context: Context) {
     }
     if (method === "GET" && p[0] === "markets" && p.length === 1) {
       const { markets } = await import("@/lib/queries");
-      return success(await markets());
+      return success(
+        await markets(url.searchParams.get("session") ?? undefined),
+      );
     }
     if (method === "GET" && p[0] === "markets" && p[1]) {
       const { market } = await import("@/lib/queries");
-      return success(await market(p[1]));
+      return success(
+        await market(p[1], url.searchParams.get("session") ?? undefined),
+      );
     }
     const actor = p[0] === "admin" ? await requireAdmin() : await requireUser();
     if (method !== "GET")
@@ -42,7 +51,9 @@ async function handle(request: Request, context: Context) {
         p[0] === "uploads" ? 20 : p[0] === "reservations" ? 30 : 120,
       );
     const body =
-      method === "GET" || method === "DELETE" ? {} : await jsonBody(request);
+      method === "GET" || (method === "DELETE" && request.body === null)
+        ? {}
+        : await jsonBody(request);
     if (p[0] === "profile") {
       if (method === "GET")
         return success({
@@ -67,14 +78,24 @@ async function handle(request: Request, context: Context) {
         );
       if (method === "POST" && p.length === 1)
         return success(await StoreService.create(actor, body), 201);
-      if (method === "PATCH" && p[1])
+      if (method === "PATCH" && p.length === 2)
         return success(await StoreService.update(actor, p[1], body));
+      if (method === "DELETE" && p.length === 2)
+        return success(await StoreService.archive(actor, p[1]));
     }
     if (p[0] === "products") {
+      if (p[2] === "inventory" && p.length === 3) {
+        if (method === "POST")
+          return success(await InventoryService.adjust(actor, p[1], body));
+        if (method === "GET")
+          return success(await InventoryService.summary(actor, p[1]));
+      }
       if (method === "POST" && p.length === 1)
         return success(await ProductService.create(actor, body), 201);
       if (method === "PATCH" && p.length === 2)
         return success(await ProductService.update(actor, p[1], body));
+      if (method === "DELETE" && p.length === 2)
+        return success(await ProductService.archive(actor, p[1]));
       if (method === "POST" && p[2] === "duplicate")
         return success(await ProductService.duplicate(actor, p[1]), 201);
       if (method === "POST" && p[2] === "discounts")
@@ -150,10 +171,11 @@ async function handle(request: Request, context: Context) {
           .object({
             productId: z.string(),
             quantity: z.number().int().min(1).max(100),
+            idempotencyKey: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/).optional(),
           })
           .parse(body);
         return success(
-          await ReservationService.create(actor, data.productId, data.quantity),
+          await ReservationService.create(actor, data.productId, data.quantity, data.idempotencyKey),
           201,
         );
       }
@@ -216,6 +238,42 @@ async function handle(request: Request, context: Context) {
       return success(await db.report.create({ data }), 201);
     }
     if (p[0] === "admin") {
+      const resourceKinds: Record<string, ResourceKind> = {
+        markets: "market",
+        zones: "zone",
+        stalls: "stall",
+      };
+      if (resourceKinds[p[1]] && p[2]) {
+        if (method === "GET" && p[3] === "deletion")
+          return success(
+            await ResourceLifecycleService.preview(
+              actor,
+              resourceKinds[p[1]],
+              p[2],
+            ),
+          );
+        if (method === "DELETE" && p.length === 3)
+          return success(
+            await ResourceLifecycleService.remove(
+              actor,
+              resourceKinds[p[1]],
+              p[2],
+              body,
+            ),
+          );
+      }
+      if (method === "PATCH" && p[1] === "zones" && p[2])
+        return success(await AdminService.updateZone(actor, p[2], body));
+      if (method === "POST" && p[1] === "markets" && p[2] && p[3] === "layout")
+        return success(await AdminService.layout(actor, p[2], body));
+      if (
+        method === "POST" &&
+        p[1] === "markets" &&
+        p[2] &&
+        p[3] === "stalls" &&
+        p[4] === "batch"
+      )
+        return success(await AdminService.stallBatch(actor, p[2], body), 201);
       if (method === "GET") {
         const take = 100;
         switch (p[1]) {
@@ -320,7 +378,8 @@ async function handle(request: Request, context: Context) {
             );
         }
       }
-      if(p[1] === 'reports' && method === 'PATCH') return success(await AdminService.report(actor,p[2],body));
+      if (p[1] === "reports" && method === "PATCH")
+        return success(await AdminService.report(actor, p[2], body));
       if (p[1] === "users" && method === "PATCH")
         return success(await AdminService.user(actor, p[2], body));
       if (p[1] === "stores" && method === "PATCH")

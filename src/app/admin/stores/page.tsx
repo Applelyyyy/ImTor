@@ -5,9 +5,10 @@ import { AdminTable } from "@/components/admin";
 import { ApiButton } from "@/components/forms";
 export default async function Stores() {
   await requireAdmin();
+  const total = await db.store.count();
   const rows = await db.store.findMany({
     orderBy: { createdAt: "desc" },
-    take: 100,
+    take: 1000,
     include: { owner: true },
   });
   return (
@@ -15,9 +16,11 @@ export default async function Stores() {
       title="ร้านค้าในชุมชน"
       description="ตรวจสอบร้านและควบคุมการแสดงผล"
       headers={["ร้าน", "เจ้าของ", "สถานะ", "จัดการ"]}
+      total={total}
+      searchValues={rows.map((r) => `${r.id} ${r.name} ${r.owner.email ?? ""} ${r.verified ? "ยืนยัน" : "ยังไม่ยืนยัน"} ${r.demoBatchId ? "สาธิต" : "จริง"}`)}
       rows={rows.map((r) => [
         <Link key="name" href={`/store/${r.slug}`}>
-          {r.name}
+          {r.name}{r.demoBatchId ? " · สาธิต" : ""}
         </Link>,
         r.owner.email,
         <span key="status">

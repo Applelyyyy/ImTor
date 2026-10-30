@@ -7,7 +7,8 @@ import {
   date,
   statusLabel,
 } from "@/components/marketplace";
-import { ApiForm, ApiButton } from "@/components/forms";
+import { ApiButton } from "@/components/forms";
+import { ContextualForm } from "@/components/contextual-form";
 import { money } from "@/lib/utils";
 export default async function MerchantReservations() {
   const s = await merchantStore();
@@ -29,6 +30,7 @@ export default async function MerchantReservations() {
           {rows.map((r) => (
             <div className="reservation-card" key={r.id}>
               <div>
+                {r.demoBatchId && <p className="help-text">การจองสาธิต · ไม่มีการซื้อขายหรือรับสินค้าจริง</p>}
                 <h2>
                   {r.product.name} × {r.quantity}
                 </h2>
@@ -41,16 +43,18 @@ export default async function MerchantReservations() {
                   {time(r.expiresAt.toISOString())}
                 </p>
                 {r.status === "RESERVED" && (
-                  <div className="flex gap-3 mt-4">
+                  <div className="flex flex-wrap gap-3 mt-4">
                     <ApiButton
                       endpoint={`/api/reservations/${r.id}`}
                       body={{ status: "CANCELLED" }}
+                      confirmMessage="ยกเลิกการจองนี้และคืนจำนวนพร้อมขาย?"
                     >
                       ยกเลิก
                     </ApiButton>
                     <ApiButton
                       endpoint={`/api/reservations/${r.id}`}
                       body={{ status: "NO_SHOW" }}
+                      confirmMessage="ยืนยันว่าลูกค้าไม่มารับ? รายการนี้จะปิดและคืนจำนวนพร้อมขาย"
                     >
                       ไม่มารับ
                     </ApiButton>
@@ -58,8 +62,8 @@ export default async function MerchantReservations() {
                 )}
               </div>
               {r.status === "RESERVED" && (
-                <div className="form-panel">
-                  <ApiForm
+                <div>
+                  <ContextualForm title="ยืนยันส่งมอบสินค้า" label="ยืนยันส่งมอบสินค้า"
                     endpoint={`/api/reservations/${r.id}`}
                     method="PATCH"
                     body={{ status: "COMPLETED" }}

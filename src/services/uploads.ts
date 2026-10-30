@@ -25,6 +25,13 @@ function client() {
   return new S3Client({
     endpoint: process.env.S3_ENDPOINT,
     region: process.env.S3_REGION ?? "auto",
+    // Browser PUT bytes are not available while signing; never sign an empty CRC.
+    ...(process.env.S3_PROVIDER === "r2"
+      ? {
+          requestChecksumCalculation: "WHEN_REQUIRED" as const,
+          responseChecksumValidation: "WHEN_REQUIRED" as const,
+        }
+      : {}),
     forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
     credentials: {
       accessKeyId: process.env.S3_ACCESS_KEY_ID,

@@ -54,6 +54,7 @@ type ProductRow = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
 export function productDTO(
   p: ProductRow,
   globalRules: DiscountInput[] = [],
+  interactiveBatchIds: ReadonlySet<string> = new Set(),
 ): ProductView {
   const now = new Date();
   const today = new Intl.DateTimeFormat("en-CA", {
@@ -66,9 +67,11 @@ export function productDTO(
       a.session.endsAt > now,
   );
   const attendance =
-    (p.sessionId ? eligible.find((a) => a.sessionId === p.sessionId) : null) ??
-    eligible.find((a) => a.session.startsAt <= now) ??
-    eligible.find((a) => a.session.date === today);
+    p.sessionId ? eligible.find((a) => a.sessionId === p.sessionId) : (
+      eligible.find((a) => a.session.startsAt <= now) ??
+      eligible.find((a) => a.session.date === today) ??
+      eligible.sort((a, b) => a.session.startsAt.getTime() - b.session.startsAt.getTime())[0]
+    );
   const stall = attendance?.assignment?.stall;
   return {
     id: p.id,
@@ -83,6 +86,8 @@ export function productDTO(
     pickupStart: p.pickupStart?.toISOString() ?? null,
     pickupEnd: p.pickupEnd?.toISOString() ?? null,
     demo: !!p.demoBatchId,
+    demoInteractive: !!p.demoBatchId && interactiveBatchIds.has(p.demoBatchId),
+    sessionId: attendance?.sessionId ?? null,
     price: PricingService.calculate(
       p.price,
       p.mode === "REGULAR" ? [] : [...p.discounts, ...globalRules],
@@ -106,6 +111,21 @@ export function productDTO(
     stallCode: stall?.code ?? null,
   };
 }
+async function interactiveDemoBatches(batchIds: (string | null)[]) {
+  if (process.env.DEMO_MODE !== "true") return new Set<string>();
+  const ids = [...new Set(batchIds.filter((id): id is string => !!id))];
+  if (!ids.length) return new Set<string>();
+  const settings = await db.systemSetting.findMany({
+    where: { key: { in: ids.map((id) => `demo:${id}`) } },
+    select: { key: true, value: true },
+  });
+  return new Set(settings.filter(({ value }) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const config = value.config;
+    return !!config && typeof config === "object" && !Array.isArray(config) &&
+      config.visitorReservations === true;
+  }).map(({ key }) => key.slice("demo:".length)));
+}
 export type Filters = {
   q?: string;
   category?: string;
@@ -116,12 +136,12 @@ export type Filters = {
 export async function products(filters: Filters = {}): Promise<ProductView[]> {
   await ReservationService.expire();
   const features = await publicFeatures();
-  if (filters.filter === "rescue" && !features.foodRescueEnabled) return [];
   filters = Object.fromEntries(
     Object.entries(filters)
       .filter(([, v]) => typeof v === "string")
-      .map(([k, v]) => [k, (v as string).slice(0, k === "q" ? 160 : 100)]),
+      .map(([k, v]) => [k, (v as string).trim().slice(0, k === "q" ? 160 : 100)]),
   );
+  if (filters.filter === "rescue" && !features.foodRescueEnabled) return [];
   const rows = await db.product.findMany({
     where: {
       published: true,
@@ -132,6 +152,15 @@ export async function products(filters: Filters = {}): Promise<ProductView[]> {
             OR: [
               { name: { contains: filters.q, mode: "insensitive" } },
               { store: { name: { contains: filters.q, mode: "insensitive" } } },
+              { store: { attendances: { some: {
+                status: { notIn: ["CANCELLED", "CLOSED", "NOT_ATTENDING"] },
+                session: { endsAt: { gt: new Date() }, status: { notIn: ["CANCELLED", "CLOSED"] } },
+                OR: [
+                  { session: { market: { name: { contains: filters.q, mode: "insensitive" } } } },
+                  { assignment: { stall: { code: { contains: filters.q, mode: "insensitive" } } } },
+                  { assignment: { stall: { zone: { name: { contains: filters.q, mode: "insensitive" } } } } },
+                ],
+              } } } },
             ],
           }
         : {}),
@@ -145,15 +174,20 @@ export async function products(filters: Filters = {}): Promise<ProductView[]> {
     },
     include: productInclude,
     orderBy: { createdAt: "desc" },
-    take: 100,
+    take: 1000,
   });
   const globalRules = await db.discountRule.findMany({
     where: { productId: null },
   });
+  const interactive = await interactiveDemoBatches(rows.map((p) => p.demoBatchId));
   return rows
-    .map((p) => productDTO(p, globalRules))
+    .map((p) => productDTO(p, globalRules, interactive))
     .filter(
       (p) =>
+        // Final matching uses the same eligible location that is displayed/linkable.
+        // A different historical/future attendance must not create a false match.
+        (!filters.q || [p.name, p.store.name, p.location].some((value) =>
+          value.toLocaleLowerCase("th").includes(filters.q!.toLocaleLowerCase("th")))) &&
         (filters.filter !== "discount" || p.price.active) &&
         (filters.filter !== "open" || p.open) &&
         (!filters.market || p.marketSlug === filters.market),
@@ -175,6 +209,7 @@ export async function product(id: string) {
     ? productDTO(
         p,
         await db.discountRule.findMany({ where: { productId: null } }),
+        await interactiveDemoBatches([p.demoBatchId]),
       )
     : null;
 }
@@ -183,6 +218,7 @@ export async function markets(
 ): Promise<MarketView[]> {
   await MarketScheduleService.ensureSessions(new Date(), 42);
   const now = new Date();
+  const features = await publicFeatures();
   const start = new Date(now.getTime() - 86400000);
   const rows = await db.marketVenue.findMany({
     where: { active: true },
@@ -214,6 +250,25 @@ export async function markets(
     },
     orderBy: { name: "asc" },
   });
+  const globalRules = await db.discountRule.findMany({ where: { productId: null } });
+  // Load minimal public fields once per assigned store. Apply session eligibility
+  // before slicing previews so newer products from another session cannot hide them.
+  const storeIds = [...new Set(rows.flatMap((m) => m.stalls.flatMap((s) =>
+    s.assignments.map((assignment) => assignment.attendance.store.id))))];
+  const mapProducts = storeIds.length ? await db.product.findMany({
+    where: { storeId: { in: storeIds }, published: true, archived: false,
+      store: { hidden: false, suspended: false },
+      ...(!features.foodRescueEnabled ? { mode: { not: "RESCUE" } } : {}),
+    },
+    select: { id: true, storeId: true, name: true, imageUrl: true, sessionId: true, mode: true, price: true, discounts: true },
+    orderBy: { createdAt: "desc" },
+  }) : [];
+  const productsByStore = new Map<string, typeof mapProducts>();
+  for (const product of mapProducts) {
+    const values = productsByStore.get(product.storeId) ?? [];
+    values.push(product);
+    productsByStore.set(product.storeId, values);
+  }
   return rows.map((m) => ({
     id: m.id,
     slug: m.slug,
@@ -258,6 +313,9 @@ export async function markets(
       const a = s.assignments.find(
         (a) => a.attendance.sessionId === selected?.id,
       );
+      const eligibleProducts = a ? (productsByStore.get(a.attendance.store.id) ?? [])
+        .filter((p) => (!p.sessionId || p.sessionId === selected?.id) &&
+          (features.foodRescueEnabled || p.mode !== "RESCUE")) : [];
       return {
         id: s.id,
         code: s.code,
@@ -272,6 +330,13 @@ export async function markets(
               name: a.attendance.store.name,
               status: a.attendance.status,
               verified: a.verified,
+              demo: !!a.attendance.store.demoBatchId,
+              productNames: eligibleProducts.map((product) => product.name),
+              products: eligibleProducts
+                .slice(0, 3)
+                .map((p) => ({ id: p.id, name: p.name, imageUrl: p.imageUrl,
+                  price: PricingService.calculate(p.price, p.mode === "REGULAR" ? [] : [...p.discounts, ...globalRules], now),
+                })),
             }
           : null,
       };
@@ -324,6 +389,6 @@ export async function reservations(userId: string, storeId?: string) {
     where: storeId ? { product: { storeId } } : { userId },
     include: { product: { include: { store: true } } },
     orderBy: { createdAt: "desc" },
-    take: 100,
+    take: 1000,
   });
 }

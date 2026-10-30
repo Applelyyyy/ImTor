@@ -13,6 +13,7 @@ import {
 import { transaction } from "./transactions";
 import { MarketScheduleService } from "./schedule";
 import { UploadService } from "./uploads";
+import { numberedStalls } from "@/lib/layout-editor";
 async function audit(
   tx: Prisma.TransactionClient,
   actor: Actor,
@@ -124,9 +125,16 @@ export class AdminService {
   }
   static async market(actor: Actor, id: string | null, input: unknown) {
     assertAdmin(actor);
-    const data = id
+    const parsed = id
       ? marketSchema.partial().parse(input)
       : marketSchema.parse(input);
+    const data = id
+      ? (Object.fromEntries(
+          Object.entries(parsed).filter(([key]) =>
+            Object.prototype.hasOwnProperty.call(input, key),
+          ),
+        ) as typeof parsed)
+      : parsed;
     if (data.layoutImage)
       await UploadService.assertOwned(actor, data.layoutImage);
     return transaction(async (tx) => {
@@ -221,6 +229,119 @@ export class AdminService {
       return row;
     });
   }
+  static async updateZone(actor: Actor, id: string, input: unknown) {
+    assertAdmin(actor);
+    const data = z
+      .object({ name: z.string().trim().min(1).max(80) })
+      .strict()
+      .parse(input);
+    return transaction(async (tx) => {
+      const row = await tx.marketZone.update({ where: { id }, data });
+      await audit(tx, actor, "ZONE_UPDATED", id, data);
+      return row;
+    });
+  }
+  static async layout(actor: Actor, marketId: string, input: unknown) {
+    assertAdmin(actor);
+    const point = z
+      .object({
+        id: z.string().min(1).max(200),
+        x: z.number().min(0).max(1),
+        y: z.number().min(0).max(1),
+      })
+      .strict();
+    const data = z
+      .object({
+        positions: z.array(point).min(1).max(500),
+        expectedPositions: z.array(point).max(500).optional(),
+      })
+      .strict()
+      .parse(input);
+    invariant(
+      new Set(data.positions.map((p) => p.id)).size === data.positions.length,
+      "มีล็อกซ้ำในรายการ",
+    );
+    return transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "MarketVenue" WHERE id=${marketId} FOR UPDATE`;
+      await tx.marketVenue.findUniqueOrThrow({ where: { id: marketId } });
+      const rows = await tx.marketStall.findMany({
+        where: { marketId, id: { in: data.positions.map((p) => p.id) } },
+      });
+      invariant(
+        rows.length === data.positions.length,
+        "ล็อกไม่อยู่ในตลาดนี้",
+        409,
+      );
+      if (data.expectedPositions) {
+        invariant(
+          data.expectedPositions.length === data.positions.length &&
+            new Set(data.expectedPositions.map((p) => p.id)).size ===
+              data.positions.length,
+          "ข้อมูลตรวจสอบตำแหน่งไม่ครบ",
+        );
+        for (const row of rows) {
+          const expected = data.expectedPositions.find((p) => p.id === row.id);
+          invariant(
+            expected && expected.x === row.x && expected.y === row.y,
+            "ตำแหน่งถูกเปลี่ยนโดยผู้ดูแลอื่น กรุณาโหลดใหม่ก่อนบันทึก",
+            409,
+          );
+        }
+      }
+      for (const point of data.positions)
+        await tx.marketStall.update({
+          where: { id: point.id },
+          data: { x: point.x, y: point.y },
+        });
+      await audit(tx, actor, "MARKET_LAYOUT_SAVED", marketId, {
+        positions: data.positions,
+      });
+      return { saved: data.positions.length };
+    });
+  }
+  static async stallBatch(actor: Actor, marketId: string, input: unknown) {
+    assertAdmin(actor);
+    const data = z
+      .object({
+        zoneId: z.string().min(1).max(200),
+        prefix: z.string(),
+        start: z.number().int(),
+        count: z.number().int(),
+        columns: z.number().int(),
+        x: z.number(),
+        y: z.number(),
+      })
+      .strict()
+      .parse(input);
+    let points: ReturnType<typeof numberedStalls>;
+    try {
+      points = numberedStalls(data);
+    } catch (error) {
+      invariant(
+        false,
+        error instanceof Error ? error.message : "ข้อมูลชุดล็อกไม่ถูกต้อง",
+      );
+    }
+    return transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "MarketVenue" WHERE id=${marketId} FOR UPDATE`;
+      const zone = await tx.marketZone.findUniqueOrThrow({
+        where: { id: data.zoneId },
+      });
+      invariant(zone.marketId === marketId, "โซนไม่อยู่ในตลาดนี้");
+      await tx.marketStall.createMany({
+        data: points.map((point) => ({ ...point, marketId, zoneId: zone.id })),
+      });
+      await audit(tx, actor, "STALL_BATCH_CREATED", marketId, {
+        zoneId: zone.id,
+        codes: points.map((p) => p.code),
+      });
+      const stalls = await tx.marketStall.findMany({
+        where: { marketId, code: { in: points.map((p) => p.code) } },
+        orderBy: { code: "asc" },
+      });
+      return { created: points.length, stalls };
+    });
+  }
   static async stall(
     actor: Actor,
     marketId: string | null,
@@ -228,14 +349,22 @@ export class AdminService {
     input: unknown,
   ) {
     assertAdmin(actor);
-    const data = id
+    const parsed = id
       ? stallSchema.partial().parse(input)
       : stallSchema.parse(input);
+    const data = id
+      ? (Object.fromEntries(
+          Object.entries(parsed).filter(([key]) =>
+            Object.prototype.hasOwnProperty.call(input, key),
+          ),
+        ) as typeof parsed)
+      : parsed;
     return transaction(async (tx) => {
       const old = id
         ? await tx.marketStall.findUniqueOrThrow({ where: { id } })
         : null;
       const venue = marketId ?? old!.marketId;
+      await tx.$queryRaw`SELECT id FROM "MarketVenue" WHERE id=${venue} FOR UPDATE`;
       if (data.zoneId) {
         const zone = await tx.marketZone.findUniqueOrThrow({
           where: { id: data.zoneId },
@@ -247,6 +376,12 @@ export class AdminService {
         : await tx.marketStall.create({
             data: { ...stallSchema.parse(input), marketId: venue },
           });
+      if (old && data.code && old.code !== data.code) {
+        await tx.attendanceTemplate.updateMany({
+          where: { marketId: venue, preferredCode: old.code },
+          data: { preferredCode: data.code },
+        });
+      }
       await audit(tx, actor, "STALL_SAVED", row.id);
       return row;
     });
@@ -259,7 +394,23 @@ export class AdminService {
         where: { id },
         data: { status },
       });
+      let releasedAssignments: Prisma.InputJsonObject[] = [];
       if (status === "CANCELLED") {
+        const assignments = await tx.stallAssignment.findMany({
+          where: { attendance: { sessionId: id } },
+          include: { attendance: true, stall: { include: { zone: true } } },
+        });
+        releasedAssignments = assignments.map((assignment) => ({
+          id: assignment.id,
+          attendanceId: assignment.attendanceId,
+          storeId: assignment.attendance.storeId,
+          stallId: assignment.stallId,
+          stallCode: assignment.stall.code,
+          zoneName: assignment.stall.zone.name,
+          startsAt: assignment.startsAt.toISOString(),
+          endsAt: assignment.endsAt.toISOString(),
+          verified: assignment.verified,
+        }));
         const attendees = await tx.storeAttendance.findMany({
           where: { sessionId: id },
           select: { id: true },
@@ -293,16 +444,25 @@ export class AdminService {
           });
         }
       }
-      await audit(tx, actor, "SESSION_" + status, id);
+      // Active rows must be released for the exclusion constraint; keep their trace atomically.
+      await audit(
+        tx,
+        actor,
+        "SESSION_" + status,
+        id,
+        status === "CANCELLED" ? { releasedAssignments } : undefined,
+      );
       return row;
     });
   }
   static async report(actor: Actor, id: string, input: unknown) {
     assertAdmin(actor);
-    const data=z.object({status:z.enum(['OPEN','RESOLVED','DISMISSED'])}).parse(input);
-    return transaction(async tx=>{
-      const row=await tx.report.update({where:{id},data});
-      await audit(tx,actor,'REPORT_REVIEWED',id,data);
+    const data = z
+      .object({ status: z.enum(["OPEN", "RESOLVED", "DISMISSED"]) })
+      .parse(input);
+    return transaction(async (tx) => {
+      const row = await tx.report.update({ where: { id }, data });
+      await audit(tx, actor, "REPORT_REVIEWED", id, data);
       return row;
     });
   }

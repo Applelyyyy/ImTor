@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Form from "next/form";
 import Image from "next/image";
 import {
   MapPin,
@@ -22,6 +23,7 @@ import {
 import { money } from "@/lib/utils";
 import { publicFeatures } from "@/lib/queries";
 import type { MarketView, ProductView } from "@/lib/contracts";
+import { NavigationLink, FormSubmit } from "@/components/pending-controls";
 export const statusLabel: Record<string, string> = {
   OPEN: "เปิดตามเวลาตลาด",
   SCHEDULED: "รอเปิดตามตาราง",
@@ -113,7 +115,7 @@ export function ProductCard({
           {p.mode === "RESCUE" && (
             <Badge variant="secondary">
               <Leaf />
-              อิ่มคุ้ม ช่วยลดเหลือ
+              ช่วยลดอาหารเหลือ
             </Badge>
           )}
           {p.demo && <Badge variant="outline">ตัวอย่าง</Badge>}
@@ -178,7 +180,6 @@ export function MarketPanel({ markets }: { markets: MarketView[] }) {
           <Store />
         </span>
         <div>
-          <p>นัดอร่อยประจำวัน</p>
           <h2>ตลาดวันนี้</h2>
         </div>
         <span className="date-stamp">
@@ -213,7 +214,7 @@ export function MarketPanel({ markets }: { markets: MarketView[] }) {
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href={`/markets/${m.slug}/map`}>แผนผังตลาด</Link>
+                <Link href={`/markets/${m.slug}/map`}>ดูแผนผัง</Link>
               </Button>
             </div>
           </div>
@@ -248,7 +249,7 @@ export function SearchForm({
   action?: string;
 }) {
   return (
-    <form action={action} className="search-form" role="search">
+    <Form action={action} className="search-form" role="search">
       <Search aria-hidden="true" />
       <label className="sr-only" htmlFor="search">
         ค้นหาสินค้าและร้านค้า
@@ -257,10 +258,10 @@ export function SearchForm({
         id="search"
         name="q"
         defaultValue={q}
-        placeholder="วันนี้อยากกินอะไร? ค้นหาอาหาร ร้านค้า..."
+        placeholder="ค้นหาร้านค้าหรือสินค้า"
       />
-      <Button type="submit">ค้นหา</Button>
-    </form>
+      <FormSubmit />
+    </Form>
   );
 }
 export async function CategoryFilters({
@@ -287,43 +288,48 @@ export async function CategoryFilters({
     }).toString();
   return (
     <nav className="category-filters" aria-label="หมวดหมู่สินค้า">
-      <Link
+      <NavigationLink
         className={!active && !filter ? "category active" : "category"}
+        aria-current={!active && !filter ? "page" : undefined}
         href={href("", "")}
       >
         <UtensilsCrossed />
         ทั้งหมด
-      </Link>
+      </NavigationLink>
       {categories.map((c) => (
-        <Link
+        <NavigationLink
           key={c.id}
           className={active === c.id ? "category active" : "category"}
+          aria-current={active === c.id ? "page" : undefined}
           href={href(c.id, "")}
         >
           {c.name}
-        </Link>
+        </NavigationLink>
       ))}
-      <Link
+      <NavigationLink
         className={filter === "discount" ? "category active" : "category"}
+        aria-current={filter === "discount" ? "page" : undefined}
         href={href("", "discount")}
       >
         ดีลลดราคา
-      </Link>
+      </NavigationLink>
       {features.foodRescueEnabled && (
-        <Link
+        <NavigationLink
           className={filter === "rescue" ? "category active" : "category"}
+          aria-current={filter === "rescue" ? "page" : undefined}
           href={href("", "rescue")}
         >
           <Leaf />
           อิ่มคุ้มลดเหลือ
-        </Link>
+        </NavigationLink>
       )}
-      <Link
+      <NavigationLink
         className={filter === "open" ? "category active" : "category"}
+        aria-current={filter === "open" ? "page" : undefined}
         href={href("", "open")}
       >
         ขายอยู่ตอนนี้
-      </Link>
+      </NavigationLink>
     </nav>
   );
 }

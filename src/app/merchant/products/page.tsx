@@ -1,88 +1,20 @@
-import Link from "next/link";
 import { merchantStore, NoStore } from "@/components/merchant";
-import { PageHeading, EmptyState } from "@/components/marketplace";
-import { ApiButton } from "@/components/forms";
-import { Button } from "@/components/ui/button";
-import { money } from "@/lib/utils";
+import { MerchantProductManager } from "@/components/merchant-product-manager";
+import { categories } from "@/lib/queries";
+import { db } from "@/lib/db";
+import { PricingService } from "@/services/pricing";
+
 export default async function MerchantProducts() {
-  const s = await merchantStore();
-  if (!s) return <NoStore />;
-  return (
-    <>
-      <PageHeading
-        title="สินค้าในร้าน"
-        description="เพิ่ม แก้ไข และตั้งเวลาลดราคาได้ในที่เดียว"
-      >
-        <Button asChild>
-          <Link href="/merchant/products/new">+ เพิ่มสินค้า</Link>
-        </Button>
-      </PageHeading>
-      {!s.products.length ? (
-        <EmptyState
-          title="สินค้าชิ้นแรกของร้าน"
-          description="เพิ่มภาพและราคา แล้วเริ่มให้ลูกค้าค้นพบร้านคุณ"
-        />
-      ) : (
-        <div className="data-table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>สินค้า</th>
-                <th>ราคา</th>
-                <th>คงเหลือ</th>
-                <th>สถานะ</th>
-                <th>จัดการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {s.products.map((p) => (
-                <tr key={p.id}>
-                  <td>
-                    <strong>{p.name}</strong>
-                    <div className="help-text">{p.category.name}</div>
-                  </td>
-                  <td>{money(p.price)}</td>
-                  <td>{p.stock ?? "ไม่จำกัด"}</td>
-                  <td>
-                    {p.archived
-                      ? "เก็บเข้าคลัง"
-                      : p.published
-                        ? "เผยแพร่"
-                        : "ซ่อน"}
-                  </td>
-                  <td>
-                    <div className="actions">
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={`/merchant/products/${p.id}/edit`}>
-                          แก้ไข / ส่วนลด
-                        </Link>
-                      </Button>
-                      <ApiButton
-                        endpoint={`/api/products/${p.id}`}
-                        body={{ published: !p.published }}
-                      >
-                        {p.published ? "ซ่อน" : "เผยแพร่"}
-                      </ApiButton>
-                      <ApiButton
-                        endpoint={`/api/products/${p.id}/duplicate`}
-                        method="POST"
-                      >
-                        ทำซ้ำ
-                      </ApiButton>
-                      <ApiButton
-                        endpoint={`/api/products/${p.id}`}
-                        body={{ archived: !p.archived }}
-                      >
-                        {p.archived ? "นำกลับ" : "เข้าคลัง"}
-                      </ApiButton>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </>
-  );
+  // Authorization precedes all product/private discount queries.
+  const store = await merchantStore();
+  if (!store) return <NoStore />;
+  const [cats, globalRules] = await Promise.all([categories(), db.discountRule.findMany({where:{productId:null}})]);
+  const now = new Date();
+  return <MerchantProductManager storeId={store.id} categories={cats.map(({id,name})=>({id,name}))} products={store.products.map((p) => ({
+    id:p.id,name:p.name,imageUrl:p.imageUrl,price:p.price,categoryId:p.categoryId,description:p.description,
+    mode:p.mode,reservable:p.reservable,stock:p.stock,published:p.published,archived:p.archived,
+    pickupStart:p.pickupStart?.toISOString()??null,pickupEnd:p.pickupEnd?.toISOString()??null,allergens:p.allergens,storage:p.storage,
+    currentPrice:PricingService.calculate(p.price,p.mode === "REGULAR"?[]:[...p.discounts,...globalRules],now).current,
+    discounts:p.discounts.map(({id,kind,value,startsAt,endsAt})=>({id,kind,value,startsAt:startsAt.toISOString(),endsAt:endsAt.toISOString()})),demo:!!p.demoBatchId,
+  }))} />;
 }

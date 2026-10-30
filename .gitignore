@@ -10,3 +10,6 @@ backups/
 .superpowers/
 test-results/
 *.tsbuildinfo
+artifacts
+docs
+__pycache__/

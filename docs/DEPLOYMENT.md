@@ -1,5 +1,7 @@
 # Self-hosted deployment
 
+For the current `imtor.applely.dev` existing-Cloudflare-Tunnel setup on **port 3100**, use [SELF_HOSTED_DEPLOYMENT.md](SELF_HOSTED_DEPLOYMENT.md) and [CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md). The Caddy/host-proxy modes below remain alternatives; do not combine them with Tunnel mode.
+
 ## Prerequisites and authorization
 
 A Linux VM with Docker Engine/Compose, sufficient free disk/RAM for a Next.js build, secure SSH, a backup destination and an operator-controlled domain. Review VM port usage before choosing a proxy. Discovery of existing containers/proxies is read-only: do not stop, delete or reconfigure unrelated services. These instructions are a runbook, not evidence that DNS, TLS, OAuth or S3 have been exercised.

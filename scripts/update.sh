@@ -3,7 +3,9 @@
 set -Eeuo pipefail
 source "$(dirname -- "$0")/_common.sh"
 validate_config
+validate_tunnel_transition
 compose build app migrate
+if [[ "${COMPOSE_MODE:-external}" == tunnel ]]; then "$ROOT_DIR/scripts/tunnel-network.sh"; fi
 # Existing database must already be healthy: don't silently replace its image.
 compose exec -T db sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"' > /dev/null
 backup="$("$ROOT_DIR/scripts/backup.sh")"

@@ -1,5 +1,7 @@
 # S3-compatible images (Cloudflare R2 / AWS S3)
 
+Current production-specific bucket, CORS, secret-rotation and approved-only media instructions: [R2_SETUP.md](R2_SETUP.md). This page retains the generic storage architecture and other-provider guidance.
+
 ## Runtime configuration
 
 ImTor uses AWS SDK v3; credentials remain server-only. Use a bucket-scoped key with only the object read/write/delete permissions required by this application's upload workflow, not an account-wide administration token.

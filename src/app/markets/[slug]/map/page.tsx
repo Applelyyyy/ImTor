@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Form from "next/form";
 import { market } from "@/lib/queries";
 import { PageHeading, EmptyState } from "@/components/marketplace";
 import { StallMap } from "@/components/stall-map";
+import { FormSubmit } from "@/components/pending-controls";
 export const metadata = { title: "แผนผังตลาดและตำแหน่งร้าน" };
 export default async function MapPage({
   params,
@@ -25,10 +27,10 @@ export default async function MapPage({
         description={
           m.demo
             ? "แผนผังตัวอย่าง ไม่ใช่ตำแหน่งสถานที่จริง"
-            : "แตะที่ล็อก หรือค้นหาจากรายชื่อด้านล่าง"
+            : "แตะที่ล็อก หรือค้นหาจากชื่อร้าน สินค้า โซน หรือรหัสล็อก"
         }
       />
-      <form className="inline-filter">
+      <Form action="" className="inline-filter">
         <label htmlFor="map-session">ตำแหน่งร้านในรอบตลาด</label>
         <select
           id="map-session"
@@ -47,10 +49,14 @@ export default async function MapPage({
             </option>
           ))}
         </select>
-        <button>ดูตำแหน่ง</button>
-      </form>
+        <FormSubmit label="ดูตำแหน่ง" pendingLabel="กำลังโหลด…" />
+      </Form>
       {m.stalls.length ? (
-        <StallMap market={m} selected={p.stall} />
+        <StallMap
+          market={m}
+          selected={p.stall}
+          sessionKey={p.session || "default"}
+        />
       ) : (
         <EmptyState
           title="ยังไม่ได้เพิ่มแผนผังตลาด"

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { store, products } from "@/lib/queries";
 import { PageHeading, ProductGrid, date, time } from "@/components/marketplace";
 import { Badge } from "@/components/ui/badge";
@@ -15,10 +16,13 @@ export default async function StorePage({
   const items = await products({ storeId: s.id });
   const now = new Date();
   const attendance = s.attendances.filter(
-    (a) => a.session.endsAt > now && a.status !== "CANCELLED",
+    (a) => a.session.endsAt > now && !["CANCELLED", "CLOSED", "NOT_ATTENDING"].includes(a.status) && !["CANCELLED", "CLOSED"].includes(a.session.status),
   );
   return (
     <div className="shell page">
+      {s.imageUrl && <div className="relative mb-6 h-56 overflow-hidden rounded-2xl md:h-80">
+        <Image src={s.imageUrl} alt={`ภาพร้าน ${s.name}${s.demoBatchId ? " (ภาพสาธิต)" : ""}`} fill sizes="(max-width: 780px) 100vw, 1200px" className="object-cover" priority />
+      </div>}
       <PageHeading title={s.name} description={s.description}>
         <Badge
           variant={s.open && s.kind !== "MARKET" ? "default" : "secondary"}
@@ -35,7 +39,7 @@ export default async function StorePage({
         <section className="content-panel">
           <h2>ร้านนี้อยู่ที่ไหน?</h2>
           <p>{s.address || "ร้านค้าในตลาด ดูวันและตำแหน่งขายด้านข้าง"}</p>
-          {s.latitude !== null && s.longitude !== null && (
+          {!s.demoBatchId && s.latitude !== null && s.longitude !== null && (
             <Button asChild variant="outline" className="mt-5">
               <a
                 target="_blank"
@@ -61,6 +65,7 @@ export default async function StorePage({
                     {date(a.session.startsAt.toISOString())}
                   </strong>
                   <small>
+                    {a.status === "OPEN" && a.session.startsAt <= now ? "ร้านยืนยันเปิด · " : "ตามตาราง ยังไม่ยืนยันเปิด · "}
                     {time(a.session.startsAt.toISOString())}–
                     {time(a.session.endsAt.toISOString())} ·{" "}
                     {a.assignment
@@ -71,7 +76,7 @@ export default async function StorePage({
                 </div>
                 <Link
                   className="link-button"
-                  href={`/markets/${a.session.market.slug}/map${a.assignment ? "?stall=" + a.assignment.stall.code : ""}`}
+                  href={`/markets/${a.session.market.slug}/map?${new URLSearchParams({ session: a.sessionId, ...(a.assignment ? { stall: a.assignment.stall.code } : {}) })}`}
                 >
                   ดูแผนผัง
                 </Link>

@@ -34,7 +34,7 @@ The app starts only after PostgreSQL is healthy and migrations succeed. Source a
 
 ### Optional fictional demo records
 
-On an isolated local database only, set `DEMO_MODE=true` and `ENABLE_DEMO_GENERATOR=true`, then run `bun run db:seed`. The CLI explicitly generates labelled fictional records. It does **not** create a password, magic demo login, public admin account or real Google identity. Browse without login; sign in with your real configured Google account for mutations. `ADMIN_EMAILS` is a comma-separated, server-only bootstrap allowlist; leave it empty unless an operator is intentionally granting admin access. Both demo flags default to false; production scripts reject demo-enabled configuration.
+On an isolated local database only, set `DEMO_MODE=true` and `ENABLE_DEMO_GENERATOR=true`, then run `bun run db:seed`. The CLI explicitly generates labelled fictional records. It does **not** create a password, magic demo login, public admin account or real Google identity. Browse without login; sign in with your real configured Google account for mutations. `ADMIN_EMAILS` is a comma-separated, server-only bootstrap allowlist; leave it empty unless an operator is intentionally granting admin access. Both demo flags default to false; production scripts reject demo-enabled configuration. For the separately isolated public presentation demo, use [the demo deployment runbook](docs/DEMO_DEPLOYMENT.md) and `scripts/deploy-demo.sh`, not production `deploy.sh`.
 
 ## Verification
 
@@ -83,3 +83,7 @@ Deployment scripts mutate only the selected ImTor Compose project. Do not run th
 ### Running browser tests outside Codex
 
 The supplied `test:e2e` command uses this Codex machine's isolated Playwright environment. On another development machine, install Python Playwright in a virtual environment, run `python -m playwright install chromium` (install Chromium system libraries for your OS), and invoke `python tests/e2e/browser.py`, `python tests/e2e/security.py`, and `python tests/e2e/admin.py` directly. Start the app on port 3100 with matching APP_URL/NEXTAUTH_URL; configure local S3-compatible storage before the upload scenario. Run `bun x tsx scripts/test-fixtures.ts` first and its `cleanup` command afterward. Fixture creation refuses a production process or a non-loopback database; it creates opaque test sessions outside the application, not a runtime login bypass.
+
+## Current production infrastructure
+
+See [Self-hosted Tunnel deployment](docs/SELF_HOSTED_DEPLOYMENT.md), [existing connector](docs/CLOUDFLARE_TUNNEL.md), [Google OAuth](docs/GOOGLE_OAUTH.md), and [R2 setup](docs/R2_SETUP.md). Tunnel origin is `http://imtor-app:3100`, with no published app/database host port. Local development: `bun run dev --port 3100 --hostname 127.0.0.1`. External readiness is reported separately from isolated checks.
