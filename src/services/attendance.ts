@@ -1,0 +1,139 @@
+import { db } from "@/lib/db";
+import { transaction } from "./transactions";
+import { assertOwner, assertAdmin, type Actor } from "@/lib/permissions";
+import { invariant } from "@/lib/errors";
+import type { z } from "zod";
+import { attendanceSchema } from "@/lib/validation";
+export class AttendanceService {
+  static async save(
+    actor: Actor,
+    input: z.infer<typeof attendanceSchema>,
+    verified = false,
+  ) {
+    const data = attendanceSchema.parse(input);
+    return transaction(async (tx) => {
+      const registration = await tx.systemSetting.findUnique({
+        where: { key: "marketRegistrationEnabled" },
+      });
+      invariant(
+        registration?.value !== false ||
+          ["ADMIN", "SUPERADMIN"].includes(actor.role),
+        "การลงทะเบียนตลาดปิดชั่วคราว",
+        409,
+      );
+      const store = await tx.store.findUniqueOrThrow({
+        where: { id: data.storeId },
+      });
+      assertOwner(actor, store);
+      invariant(!store.suspended, "ร้านถูกระงับ", 403);
+      const session = await tx.marketSession.findUniqueOrThrow({
+        where: { id: data.sessionId },
+        include: { market: true },
+      });
+      invariant(
+        session.status !== "CANCELLED" &&
+          session.endsAt > new Date() &&
+          session.market.active,
+        "รอบตลาดนี้ปิดหรือยกเลิกแล้ว",
+        409,
+      );
+      const stall = await tx.marketStall.findUniqueOrThrow({
+        where: { id: data.stallId },
+        include: { zone: true },
+      });
+      invariant(
+        stall.marketId === session.marketId &&
+          stall.zone.marketId === session.marketId &&
+          stall.active,
+        "ล็อกไม่อยู่ในตลาดนี้หรือปิดใช้งาน",
+      );
+      if (verified) assertAdmin(actor);
+      if (data.status === "OPEN")
+        invariant(
+          session.startsAt <= new Date() && session.endsAt > new Date(),
+          "ยังไม่ถึงเวลาเปิดตลาด",
+          409,
+        );
+      // Lock a stall across all sessions; the exclusion constraint is the final cross-process guard.
+      await tx.$queryRaw`SELECT id FROM "MarketStall" WHERE id=${stall.id} FOR UPDATE`;
+      const attendance = await tx.storeAttendance.upsert({
+        where: {
+          storeId_sessionId: { storeId: store.id, sessionId: session.id },
+        },
+        create: {
+          storeId: store.id,
+          sessionId: session.id,
+          status: data.status,
+          authorized: true,
+          expectedArrival: data.expectedArrival,
+          sellingUntil: data.sellingUntil,
+        },
+        update: {
+          status: data.status,
+          authorized: true,
+          expectedArrival: data.expectedArrival,
+          sellingUntil: data.sellingUntil,
+        },
+      });
+      await tx.stallAssignment.deleteMany({
+        where: { attendanceId: attendance.id },
+      });
+      if (!["CANCELLED", "NOT_ATTENDING"].includes(data.status)) {
+        const conflict = await tx.stallAssignment.findFirst({
+          where: {
+            stallId: stall.id,
+            startsAt: { lt: session.endsAt },
+            endsAt: { gt: session.startsAt },
+          },
+        });
+        invariant(!conflict, "ล็อกนี้มีร้านจองในช่วงเวลานี้แล้ว", 409);
+        await tx.stallAssignment.create({
+          data: {
+            attendanceId: attendance.id,
+            stallId: stall.id,
+            startsAt: session.startsAt,
+            endsAt: session.endsAt,
+            verified,
+          },
+        });
+      }
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: "ATTENDANCE_SAVED",
+          target: attendance.id,
+          changes: { stallId: stall.id, status: data.status, verified },
+        },
+      });
+      return attendance;
+    });
+  }
+  static async update(
+    actor: Actor,
+    id: string,
+    input: Record<string, unknown>,
+    admin = false,
+  ) {
+    const row = await db.storeAttendance.findUniqueOrThrow({
+      where: { id },
+      include: { assignment: true },
+    });
+    if (admin) assertAdmin(actor);
+    return this.save(
+      actor,
+      {
+        storeId: row.storeId,
+        sessionId: row.sessionId,
+        stallId:
+          typeof input.stallId === "string"
+            ? input.stallId
+            : (row.assignment?.stallId ?? ""),
+        authorized: true,
+        status: (input.status ?? row.status) as z.infer<
+          typeof attendanceSchema
+        >["status"],
+      },
+      admin && input.verified === true,
+    );
+  }
+}

@@ -1,0 +1,26 @@
+# Explicit override; not automatically loaded in production.
+services:
+  db:
+    ports: ["127.0.0.1:${DEV_DB_PORT:-55432}:5432"]
+  app:
+    image: imtor-dev:${IMAGE_TAG:-local}
+    build:
+      target: development
+    command: [sh, -c, "bun run db:generate && exec bun run dev"]
+    environment:
+      NODE_ENV: development
+      WATCHPACK_POLLING: "true"
+    ports: ["127.0.0.1:${APP_PORT:-3000}:3000"]
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    develop:
+      watch:
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./bun.lock
+        - action: rebuild
+          path: ./prisma
+  caddy:
+    profiles: [disabled]

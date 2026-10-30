@@ -1,0 +1,99 @@
+name: imtor
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+x-app-env: &app-env
+  DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in your environment file}
+  APP_URL: ${APP_URL:-http://localhost:3000}
+  NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+  TZ: ${TZ:-Asia/Bangkok}
+services:
+  db:
+    image: postgres:18.3-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-imtor}
+      POSTGRES_USER: ${POSTGRES_USER:-imtor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    logging: *logging
+  migrate:
+    image: imtor-migration:${IMAGE_TAG:-local}
+    build:
+      context: .
+      target: migration
+    env_file: ${IMTOR_ENV_FILE:-.env}
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    logging: *logging
+  app:
+    image: imtor-app:${IMAGE_TAG:-local}
+    build:
+      context: .
+      target: runtime
+      args:
+        S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+    env_file: ${IMTOR_ENV_FILE:-.env}
+    environment:
+      <<: *app-env
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+    expose: ["3000"]
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    init: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 9
+      start_period: 30s
+    logging: *logging
+  caddy:
+    image: caddy:2.10.2-alpine
+    profiles: [edge]
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:2019/config/]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *logging
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

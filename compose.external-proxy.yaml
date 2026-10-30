@@ -1,0 +1,6 @@
+# Existing host reverse proxy / tunnel reaches loopback. No 80/443 binding.
+services:
+  app:
+    ports: ["${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3000}:3000"]
+  caddy:
+    profiles: [disabled]

@@ -1,0 +1,16 @@
+.git
+node_modules
+.next
+.env
+.env.*
+**/.npmrc
+**/*.pem
+**/*.key
+backups
+coverage
+test-results
+playwright-report
+*.tsbuildinfo
+src/generated
+docs
+README.md

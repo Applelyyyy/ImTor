@@ -1,0 +1,1 @@
+This empty migration was applied during initial local bootstrap. It has no database effects. The full initial schema lives in 202610300001_init; canonical categories follow in 202610300002_categories.

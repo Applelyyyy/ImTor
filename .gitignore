@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+!.env.production.example
+src/generated/
+coverage/
+backups/
+.superpowers/
+test-results/
+*.tsbuildinfo
