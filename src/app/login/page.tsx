@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LoginButton } from "@/components/forms";
+import { LoginButton } from "@/components/auth-buttons";
 export const metadata = { title: "เข้าสู่ระบบ" };
 export default function Login() {
   return (

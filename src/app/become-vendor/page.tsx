@@ -1,5 +1,6 @@
 import { currentUser } from "@/lib/auth";
-import { ApiForm, LoginButton } from "@/components/forms";
+import { ApiForm } from "@/components/forms";
+import { LoginButton } from "@/components/auth-buttons";
 import { PageHeading } from "@/components/marketplace";
 export const metadata = { title: "เปิดร้านกับอิ่มต่อ" };
 export default async function BecomeVendor() {

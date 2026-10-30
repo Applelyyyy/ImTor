@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/components/auth-guard";
-import { ApiForm, LogoutButton } from "@/components/forms";
+import { ApiForm } from "@/components/forms";
+import { LogoutButton } from "@/components/auth-buttons";
 import { PageHeading } from "@/components/marketplace";
 import { Button } from "@/components/ui/button";
 export const metadata = { title: "โปรไฟล์ของคุณ" };
